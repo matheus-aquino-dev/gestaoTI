@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><title>Adicionar Ativo</title></head>
+<body>
+    <h1>Adicionar Ativo</h1>
+    <form method="post">
+        <label>Nome:</label><br>
+        <input type="text" name="nome" required><br>
+        <label>Descrição:</label><br>
+        <input type="text" name="descricao"><br>
+        <label>Categoria:</label><br>
+        <select name="categoria_id" required>
+            {% for categoria in categorias %}
+            <option value="{{ categoria[0] }}">{{ categoria[1] }}</option>
+            {% endfor %}
+        </select><br>
+        <label>Número de Série:</label><br>
+        <input type="text" name="numero_serie" required><br>
+        <label>Data de Aquisição (YYYY-MM-DD):</label><br>
+        <input type="date" name="data_aquisicao" required><br><br>
+        <input type="submit" value="Adicionar">
+    </form>
+    <br><a href="{{ url_for('index') }}">Voltar</a>
+</body>
+</html>
