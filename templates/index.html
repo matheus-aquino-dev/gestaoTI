@@ -7,7 +7,7 @@
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
             --accent-color: #e74c3c;
-            --light-bg: #ecf0f1;
+            --light-bg: #f8f9fa;
             --border-color: #bdc3c7;
             --hover-color: #d5dbdb;
             --text-color: #2c3e50;
@@ -16,7 +16,7 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: 20px;
-            background-color: #f8f9fa;
+            background-color: #f5f7fa;
             color: var(--text-color);
             line-height: 1.6;
         }
@@ -83,11 +83,50 @@
             border-color: var(--secondary-color);
         }
 
+        .nav a.highlight {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
         hr {
             border: none;
             height: 1px;
             background-color: var(--border-color);
             margin: 20px 0;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: var(--primary-color);
+            font-size: 2rem;
+        }
+
+        .stat-card p {
+            margin: 0;
+            color: var(--text-color);
+            font-weight: 500;
         }
 
         table {
@@ -145,6 +184,45 @@
         td a:last-child:hover {
             color: #c0392b;
         }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-disponivel {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-alocado {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-manutencao {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-descartado {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            font-style: italic;
+            color: #7f8c8d;
+        }
+
+        .icon {
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -152,15 +230,38 @@
         <h1>Painel de Ativos</h1>
         <span>Olá, {{ current_user.nome }}! <a href="{{ url_for('logout') }}">Sair</a></span>
     </div>
+    
+    <div class="stats-container">
+        <div class="stat-card">
+            <h3>{{ ativos|length }}</h3>
+            <p>Total de Ativos</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ ativos|selectattr('status', 'equalto', 'Disponivel')|list|length }}</h3>
+            <p>Disponíveis</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ ativos|selectattr('status', 'equalto', 'Alocado')|list|length }}</h3>
+            <p>Alocados</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ ativos|selectattr('status', 'equalto', 'Em Manutenção')|list|length }}</h3>
+            <p>Em Manutenção</p>
+        </div>
+    </div>
+    
     <div class="nav">
         <a href="{{ url_for('adicionar_ativo') }}">Adicionar Ativo</a> |
         <a href="{{ url_for('alocar_ativo') }}">Alocar Ativo</a> |
         <a href="{{ url_for('devolver_ativo') }}">Devolver Ativo</a> |
+        <a href="{{ url_for('importar_csv') }}" class="highlight">Importar via CSV</a> |
         <a href="{{ url_for('listar_categorias') }}">Gerenciar Categorias</a> |
         <a href="{{ url_for('listar_centros_custo') }}">Gerenciar Centros de Custo</a> |
         <a href="{{ url_for('listar_usuarios') }}">Gerenciar Usuários</a>
     </div>
+    
     <hr>
+    
     <table>
         <thead>
             <tr>
@@ -183,7 +284,7 @@
                 <td>{{ ativo.categoria or 'N/A' }}</td>
                 <td>{{ ativo.centro_custo or 'N/A' }}</td>
                 <td>{{ "%.2f"|format(ativo.valor|float) if ativo.valor else 'N/A' }}</td>
-                <td>{{ ativo.status }}</td>
+                <td><span class="status-badge status-{{ ativo.status|lower|replace(' ', '-') }}">{{ ativo.status }}</span></td>
                 <td>
                     <a href="{{ url_for('detalhes_ativo', id=ativo.id) }}">Detalhes</a>
                     <a href="{{ url_for('editar_ativo', id=ativo.id) }}">Editar</a>
@@ -192,7 +293,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="8" style="text-align: center; padding: 20px; font-style: italic; color: #7f8c8d;">Nenhum ativo encontrado.</td>
+                <td colspan="8" class="empty-state">Nenhum ativo encontrado.</td>
             </tr>
             {% endfor %}
         </tbody>

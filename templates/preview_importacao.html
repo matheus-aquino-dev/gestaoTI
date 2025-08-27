@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pré-visualização da Importação</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --light-bg: #f8f9fa;
+            --border-color: #ddd;
+            --hover-color: #e9ecef;
+            --text-color: #333;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        .info-box {
+            background-color: #e8f4fc;
+            border-left: 4px solid var(--secondary-color);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #0c5460;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            font-size: 0.9em;
+            margin-bottom: 25px;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 15px;
+            vertical-align: middle;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--light-bg);
+        }
+
+        tr:hover {
+            background-color: var(--hover-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .confirm-btn {
+            background-color: var(--success-color);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .confirm-btn:hover {
+            background-color: #218838;
+        }
+
+        .confirm-btn:active {
+            transform: translateY(1px);
+        }
+
+        .cancel-btn {
+            color: var(--danger-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            border: 1px solid var(--danger-color);
+        }
+
+        .cancel-btn:hover {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .icon {
+            margin-right: 8px;
+        }
+
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 150px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            margin: 0 0 5px 0;
+            color: var(--primary-color);
+            font-size: 1.8rem;
+        }
+
+        .stat-card p {
+            margin: 0;
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1><span class="icon">📋</span> Pré-visualização dos Dados a Serem Importados</h1>
+    
+    <div class="info-box">
+        <p><span class="icon">ℹ️</span> Verifique se os dados abaixo estão corretos. Se estiverem, clique em <span class="highlight">"Confirmar Importação"</span> para salvar os dados permanentemente.</p>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <h3>{{ data|length }}</h3>
+            <p>Registros a importar</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ headers|length }}</h3>
+            <p>Colunas identificadas</p>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    {% for header in headers %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    {% for header in headers %}
+                    <td>{{ row[header] }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="actions">
+        <form action="{{ url_for('confirmar_importacao') }}" method="post" style="display:inline;">
+            <button type="submit" class="confirm-btn">
+                <span class="icon">✓</span> Confirmar Importação
+            </button>
+        </form>
+        <a href="{{ url_for('index') }}" class="cancel-btn">
+            <span class="icon">✗</span> Cancelar
+        </a>
+    </div>
+</body>
+</html>

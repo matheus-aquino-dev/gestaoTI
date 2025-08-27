@@ -1,6 +1,9 @@
 import sqlite3
+import csv
+import json
+import io
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
@@ -104,6 +107,118 @@ def index():
     """
     return render_template('index.html', ativos=db_query(query))
 
+# --- Rota de Download do CSV Modelo ---
+@app.route('/download/modelo_csv')
+@login_required
+def download_modelo_csv():
+    output = io.StringIO()
+    # CORREÇÃO: Usar ponto e vírgula como delimitador
+    writer = csv.writer(output, delimiter=';')
+    
+    header = [
+        'Nome', 'Modelo', 'Categoria', 'Centro de Custo', 'Valor', 'DataAquisicao',
+        'Patrimonio', 'NumeroSerie', 'Descricao', 'NumeroChip', 'IMEI1', 'IMEI2'
+    ]
+    writer.writerow(header)
+    
+    example_row = [
+        'Notebook Exemplo', 'Inspiron 15', 'Notebooks', 'TI São Paulo', '4500,50', '2025-01-15',
+        'PAT-00123', 'BRJ123XYZ', 'Notebook i5 com 8GB de RAM', '', '', ''
+    ]
+    writer.writerow(example_row)
+    
+    output.seek(0)
+    
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')), # Usar utf-8-sig para melhor compatibilidade com Excel
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='modelo_importacao.csv'
+    )
+
+# --- Rotas de Importação ---
+@app.route('/importar', methods=['GET', 'POST'])
+@login_required
+def importar_csv():
+    if request.method == 'POST':
+        arquivo = request.files.get('arquivo')
+        if not arquivo or arquivo.filename == '':
+            flash('Nenhum ficheiro selecionado.', 'danger')
+            return redirect(request.url)
+
+        if not arquivo.filename.endswith('.csv'):
+            flash('Formato de ficheiro inválido. Por favor, envie um .csv', 'danger')
+            return redirect(request.url)
+
+        try:
+            stream = arquivo.stream.read().decode("utf-8")
+            # Tenta detetar o delimitador
+            delimiter = ';' if ';' in stream.splitlines()[0] else ','
+            csv_data = csv.reader(stream.splitlines(), delimiter=delimiter)
+            
+            headers = next(csv_data)
+            preview_data = [dict(zip(headers, row)) for row in csv_data]
+
+            session['preview_data'] = json.dumps(preview_data)
+            
+            return render_template('preview_importacao.html', headers=headers, data=preview_data)
+
+        except Exception as e:
+            flash(f'Ocorreu um erro ao processar o ficheiro: {e}', 'danger')
+            return redirect(request.url)
+
+    return render_template('importar_csv.html')
+
+@app.route('/importar/confirmar', methods=['POST'])
+@login_required
+def confirmar_importacao():
+    preview_data_json = session.pop('preview_data', None)
+    if not preview_data_json:
+        flash('Nenhum dado para importar.', 'danger')
+        return redirect(url_for('importar_csv'))
+
+    data_to_import = json.loads(preview_data_json)
+    
+    try:
+        for row in data_to_import:
+            cat_nome = row.get('Categoria', '').strip()
+            cc_nome = row.get('Centro de Custo', '').strip()
+
+            if not cat_nome or not cc_nome: continue
+
+            categoria = db_query("SELECT id FROM categorias WHERE nome = ?", (cat_nome,), fetchone=True)
+            if not categoria:
+                db_query("INSERT INTO categorias (nome) VALUES (?)", (cat_nome,), commit=True)
+                categoria = db_query("SELECT id FROM categorias WHERE nome = ?", (cat_nome,), fetchone=True)
+            
+            cc = db_query("SELECT id FROM centros_custo WHERE nome = ?", (cc_nome,), fetchone=True)
+            if not cc:
+                db_query("INSERT INTO centros_custo (nome) VALUES (?)", (cc_nome,), commit=True)
+                cc = db_query("SELECT id FROM centros_custo WHERE nome = ?", (cc_nome,), fetchone=True)
+            
+            # Substitui vírgula por ponto no valor
+            valor_str = row.get('Valor', '').replace(',', '.')
+            
+            ativo_dados = {
+                "nome": row.get('Nome'), "modelo": row.get('Modelo'), "categoria_id": categoria['id'],
+                "centro_custo_id": cc['id'], "valor": valor_str or None,
+                "data_aquisicao": row.get('DataAquisicao'), "patrimonio": row.get('Patrimonio'),
+                "numero_serie": row.get('NumeroSerie'), "descricao": row.get('Descricao'),
+                "numero_chip": row.get('NumeroChip'), "imei1": row.get('IMEI1'), "imei2": row.get('IMEI2'),
+                "status": 'Disponivel'
+            }
+            
+            ativo_dados_limpo = {k: v for k, v in ativo_dados.items() if v}
+            colunas = ', '.join(ativo_dados_limpo.keys())
+            placeholders = ', '.join(['?'] * len(ativo_dados_limpo))
+            db_query(f"INSERT INTO ativos ({colunas}) VALUES ({placeholders})", list(ativo_dados_limpo.values()), commit=True)
+
+        flash('Ativos importados com sucesso!', 'success')
+    except Exception as e:
+        flash(f'Ocorreu um erro na importação final: {e}', 'danger')
+
+    return redirect(url_for('index'))
+
 # --- Rotas de Ativos ---
 @app.route('/ativo/adicionar', methods=['GET', 'POST'])
 @login_required
@@ -141,13 +256,7 @@ def excluir_ativo(id):
 @app.route('/ativo/<int:id>/detalhes')
 @login_required
 def detalhes_ativo(id):
-    ativo_query = """
-        SELECT a.*, cat.nome as categoria, cc.nome as centro_custo 
-        FROM ativos a 
-        LEFT JOIN categorias cat ON a.categoria_id = cat.id 
-        LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id 
-        WHERE a.id = ?
-    """
+    ativo_query = "SELECT a.*, cat.nome as categoria, cc.nome as centro_custo FROM ativos a LEFT JOIN categorias cat ON a.categoria_id = cat.id LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id WHERE a.id = ?"
     historico_query = "SELECT * FROM historico_alocacoes WHERE ativo_id = ? ORDER BY data_alocacao DESC"
     return render_template('detalhes_ativo.html', 
                            ativo=db_query(ativo_query, (id,), fetchone=True),
@@ -221,7 +330,7 @@ def listar_categorias():
 
 @app.route('/categorias/adicionar', methods=['GET', 'POST'])
 @login_required
-def adicionar_categorias():
+def adicionar_categoria():
     if request.method == 'POST':
         db_query("INSERT INTO categorias (nome) VALUES (?)", (request.form['nome'],), commit=True)
         return redirect(url_for('listar_categorias'))
@@ -229,7 +338,7 @@ def adicionar_categorias():
 
 @app.route('/categorias/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
-def editar_categorias(id):
+def editar_categoria(id):
     if request.method == 'POST':
         db_query("UPDATE categorias SET nome = ? WHERE id = ?", (request.form['nome'], id), commit=True)
         return redirect(url_for('listar_categorias'))
@@ -237,7 +346,7 @@ def editar_categorias(id):
 
 @app.route('/categorias/<int:id>/excluir')
 @login_required
-def excluir_categorias(id):
+def excluir_categoria(id):
     db_query("DELETE FROM categorias WHERE id = ?", (id,), commit=True)
     return redirect(url_for('listar_categorias'))
 
