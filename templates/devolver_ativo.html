@@ -116,13 +116,18 @@
             margin: 0;
             color: #856404;
         }
+
+        .icon {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
     <h1>Devolver Ativo</h1>
     
     <div class="info-box">
-        <p>Selecione um ativo alocado abaixo para registrar sua devolução.</p>
+        <p><span class="icon">ℹ️</span>Selecione um ativo alocado abaixo para registrar sua devolução.</p>
     </div>
     
     <form method="post">
@@ -131,7 +136,7 @@
             <select name="alocacao_id" id="alocacao_id" required>
                 <option value="">Selecione uma alocação...</option>
                 {% for alocacao in alocacoes %}
-                <option value="{{ alocacao.id }}">{{ alocacao.ativo }} (com {{ alocacao.usuario }})</option>
+                <option value="{{ alocacao.id }}">{{ alocacao.ativo }} (com {{ alocacao.funcionario_nome }})</option>
                 {% endfor %}
             </select>
         </div>

@@ -42,10 +42,10 @@ def criar_banco():
                  numero_chip TEXT, imei1 TEXT, imei2 TEXT,
                  FOREIGN KEY (categoria_id) REFERENCES categorias(id),
                  FOREIGN KEY (centro_custo_id) REFERENCES centros_custo(id))''')
-    c.execute('''CREATE TABLE IF NOT EXISTS alocacoes (id INTEGER PRIMARY KEY, ativo_id INTEGER, usuario_id INTEGER, data_alocacao DATE,
-                 FOREIGN KEY (ativo_id) REFERENCES ativos(id), FOREIGN KEY (usuario_id) REFERENCES usuarios(id))''')
-    c.execute('''CREATE TABLE IF NOT EXISTS historico_alocacoes (id INTEGER PRIMARY KEY, ativo_id INTEGER, usuario_id INTEGER, data_alocacao DATE, data_devolucao DATE,
-                 FOREIGN KEY (ativo_id) REFERENCES ativos(id), FOREIGN KEY (usuario_id) REFERENCES usuarios(id))''')
+    c.execute('''CREATE TABLE IF NOT EXISTS alocacoes (id INTEGER PRIMARY KEY, ativo_id INTEGER, funcionario_nome TEXT, data_alocacao DATE,
+                 FOREIGN KEY (ativo_id) REFERENCES ativos(id))''')
+    c.execute('''CREATE TABLE IF NOT EXISTS historico_alocacoes (id INTEGER PRIMARY KEY, ativo_id INTEGER, funcionario_nome TEXT, data_alocacao DATE, data_devolucao DATE,
+                 FOREIGN KEY (ativo_id) REFERENCES ativos(id))''')
     conn.commit()
     conn.close()
 
@@ -148,11 +148,7 @@ def detalhes_ativo(id):
         LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id 
         WHERE a.id = ?
     """
-    historico_query = """
-        SELECT h.data_alocacao, h.data_devolucao, u.nome as usuario
-        FROM historico_alocacoes h JOIN usuarios u ON h.usuario_id = u.id
-        WHERE h.ativo_id = ? ORDER BY h.data_alocacao DESC
-    """
+    historico_query = "SELECT * FROM historico_alocacoes WHERE ativo_id = ? ORDER BY data_alocacao DESC"
     return render_template('detalhes_ativo.html', 
                            ativo=db_query(ativo_query, (id,), fetchone=True),
                            historico=db_query(historico_query, (id,)))
@@ -163,15 +159,16 @@ def detalhes_ativo(id):
 def alocar_ativo():
     if request.method == 'POST':
         ativo_id = request.form['ativo_id']
-        usuario_id = request.form['usuario_id']
+        funcionario_nome = request.form['funcionario_nome']
         data = datetime.now().date()
-        db_query("INSERT INTO alocacoes (ativo_id, usuario_id, data_alocacao) VALUES (?, ?, ?)", (ativo_id, usuario_id, data), commit=True)
-        db_query("INSERT INTO historico_alocacoes (ativo_id, usuario_id, data_alocacao) VALUES (?, ?, ?)", (ativo_id, usuario_id, data), commit=True)
+        db_query("INSERT INTO alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", 
+                 (ativo_id, funcionario_nome, data), commit=True)
+        db_query("INSERT INTO historico_alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", 
+                 (ativo_id, funcionario_nome, data), commit=True)
         db_query("UPDATE ativos SET status = 'Alocado' WHERE id = ?", (ativo_id,), commit=True)
         return redirect(url_for('index'))
     return render_template('alocar_ativo.html',
-                           ativos=db_query("SELECT * FROM ativos WHERE status = 'Disponivel'"),
-                           usuarios=db_query("SELECT * FROM usuarios"))
+                           ativos=db_query("SELECT * FROM ativos WHERE status = 'Disponivel'"))
 
 @app.route('/devolver', methods=['GET', 'POST'])
 @login_required
@@ -180,10 +177,11 @@ def devolver_ativo():
         alocacao_id = request.form['alocacao_id']
         alocacao = db_query("SELECT ativo_id FROM alocacoes WHERE id = ?", (alocacao_id,), fetchone=True)
         db_query("UPDATE ativos SET status = 'Disponivel' WHERE id = ?", (alocacao['ativo_id'],), commit=True)
-        db_query("UPDATE historico_alocacoes SET data_devolucao = ? WHERE ativo_id = ? AND data_devolucao IS NULL", (datetime.now().date(), alocacao['ativo_id']), commit=True)
+        db_query("UPDATE historico_alocacoes SET data_devolucao = ? WHERE ativo_id = ? AND data_devolucao IS NULL", 
+                 (datetime.now().date(), alocacao['ativo_id']), commit=True)
         db_query("DELETE FROM alocacoes WHERE id = ?", (alocacao_id,), commit=True)
         return redirect(url_for('index'))
-    alocacoes_query = "SELECT al.id, a.nome as ativo, u.nome as usuario FROM alocacoes al JOIN ativos a ON al.ativo_id = a.id JOIN usuarios u ON al.usuario_id = u.id"
+    alocacoes_query = "SELECT al.id, a.nome as ativo, al.funcionario_nome FROM alocacoes al JOIN ativos a ON al.ativo_id = a.id"
     return render_template('devolver_ativo.html', alocacoes=db_query(alocacoes_query))
 
 # --- Rotas de Gerenciamento ---

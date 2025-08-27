@@ -32,48 +32,49 @@
         }
 
         form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
             background-color: white;
             padding: 25px;
             border-radius: 8px;
             box-shadow: var(--shadow);
-            margin-bottom: 20px;
+            max-width: 500px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
         }
 
         label {
-            display: block;
             font-weight: 600;
             margin-bottom: 8px;
             color: var(--primary-color);
         }
 
-        select {
-            width: 100%;
+        input, select {
             padding: 12px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             box-sizing: border-box;
             font-size: 1rem;
-            background-color: white;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
 
-        select:focus {
+        input:focus, select:focus {
             border-color: var(--secondary-color);
             box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
             outline: none;
         }
 
         input[type="submit"] {
-            display: inline-block;
-            margin-top: 20px;
+            margin-top: 10px;
             background-color: var(--success-color);
             color: white;
             border: none;
             cursor: pointer;
-            padding: 12px 25px;
             font-weight: 600;
-            font-size: 1rem;
-            border-radius: 4px;
             transition: background-color 0.3s, transform 0.1s;
         }
 
@@ -87,6 +88,7 @@
 
         a {
             display: inline-block;
+            margin-top: 20px;
             color: var(--secondary-color);
             text-decoration: none;
             font-weight: 500;
@@ -100,28 +102,41 @@
             color: white;
         }
 
-        .form-group {
+        .info-box {
+            background-color: #e8f4fc;
+            border-left: 4px solid var(--secondary-color);
+            padding: 15px;
             margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #0c5460;
         }
     </style>
 </head>
 <body>
     <h1>Alocar Ativo</h1>
+    
+    <div class="info-box">
+        <p>Preencha os dados abaixo para alocar um ativo a um funcionário.</p>
+    </div>
+    
     <form method="post">
         <div class="form-group">
             <label for="ativo_id">Ativo Disponível:</label>
             <select name="ativo_id" id="ativo_id" required>
                 <option value="">Selecione um ativo...</option>
-                {% for ativo in ativos %}<option value="{{ ativo.id }}">{{ ativo.nome }} ({{ ativo.modelo or 'Sem modelo' }})</option>{% endfor %}
+                {% for ativo in ativos %}
+                <option value="{{ ativo.id }}">{{ ativo.nome }} ({{ ativo.modelo or 'Sem modelo' }})</option>
+                {% endfor %}
             </select>
         </div>
         
         <div class="form-group">
-            <label for="usuario_id">Usuário:</label>
-            <select name="usuario_id" id="usuario_id" required>
-                <option value="">Selecione um usuário...</option>
-                {% for usuario in usuarios %}<option value="{{ usuario.id }}">{{ usuario.nome }}</option>{% endfor %}
-            </select>
+            <label for="funcionario_nome">Nome do Funcionário:</label>
+            <input type="text" name="funcionario_nome" id="funcionario_nome" placeholder="Digite o nome completo" required>
         </div>
         
         <input type="submit" value="Alocar">
