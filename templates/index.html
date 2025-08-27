@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gestor de Ativos TI</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .container { display: flex; gap: 20px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Lista de Ativos</h1>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Categoria</th>
+            <th>Número de Série</th>
+            <th>Status</th>
+        </tr>
+        {% for ativo in ativos %}
+        <tr>
+            <td>{{ ativo[0] }}</td>
+            <td>{{ ativo[1] }}</td>
+            <td>{{ ativo[2] }}</td>
+            <td>{{ ativo[3] }}</td>
+            <td>{{ ativo[4] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <div class="container">
+        <a href="{{ url_for('adicionar_categoria_route') }}">Adicionar Categoria</a> |
+        <a href="{{ url_for('adicionar_ativo_route') }}">Adicionar Ativo</a> |
+        <a href="{{ url_for('adicionar_usuario_route') }}">Adicionar Usuário</a> |
+        <a href="{{ url_for('alocar_ativo_route') }}">Alocar Ativo</a> |
+        <a href="{{ url_for('importar_csv_route') }}">Importar CSV</a> |
+        <a href="{{ url_for('exportar_csv_route') }}">Exportar CSV</a>
+    </div>
+    <br>
+    <canvas id="relatorioChart" width="400" height="200"></canvas>
+    <script>
+        // Obter dados do Flask e converter para arrays
+        const chartCategories = {{ categorias|tojson|safe }} || [];
+        const chartTotals = {{ totais|tojson|safe }} || [];
+
+        // Depuração para verificar os dados
+        console.log('Categorias:', chartCategories);
+        console.log('Totais:', chartTotals);
+
+        // Verificar se há dados antes de criar o gráfico
+        if (chartCategories.length > 0 && chartTotals.length > 0) {
+            const ctx = document.getElementById('relatorioChart').getContext('2d');
+            const relatorioChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartCategories,
+                    datasets: [{
+                        label: 'Total de Ativos',
+                        data: chartTotals,
+                        backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56', '#FF6384']
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('relatorioChart').style.display = 'none';
+            console.log('Nenhum dado disponível para o gráfico.');
+        }
+    </script>
+</body>
+</html>

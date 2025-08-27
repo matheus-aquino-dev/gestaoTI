@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><title>Alocar Ativo</title></head>
+<body>
+    <h1>Alocar Ativo</h1>
+    <form method="post">
+        <label>Ativo:</label><br>
+        <select name="ativo_id" required>
+            {% for ativo in ativos %}
+            <option value="{{ ativo[0] }}">{{ ativo[1] }}</option>
+            {% endfor %}
+        </select><br>
+        <label>Usuário:</label><br>
+        <select name="usuario_id" required>
+            {% for usuario in usuarios %}
+            <option value="{{ usuario[0] }}">{{ usuario[1] }}</option>
+            {% endfor %}
+        </select><br><br>
+        <input type="submit" value="Alocar">
+    </form>
+    <br><a href="{{ url_for('index') }}">Voltar</a>
+</body>
+</html>
