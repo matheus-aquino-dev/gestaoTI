@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Editar Categoria</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --light-bg: #f8f9fa;
+            --border-color: #ddd;
+            --hover-color: #e9ecef;
+            --text-color: #333;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        form {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+
+        input[type="submit"] {
+            display: inline-block;
+            margin-top: 20px;
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 12px 25px;
+            font-weight: 600;
+            font-size: 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #218838;
+        }
+
+        input[type="submit"]:active {
+            transform: translateY(1px);
+        }
+
+        .cancel-link {
+            display: inline-block;
+            color: #6c757d;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            border: 1px solid #6c757d;
+        }
+
+        .cancel-link:hover {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .button-group .cancel-link {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Editar Categoria</h1>
+    <form method="post">
+        <div class="form-group">
+            <label for="nome">Nome:</label>
+            <input type="text" name="nome" id="nome" value="{{ categoria[1] }}" required>
+        </div>
+        
+        <div class="button-group">
+            <input type="submit" value="Salvar Alterações">
+            <a href="{{ url_for('listar_categorias') }}" class="cancel-link">Cancelar</a>
+        </div>
+    </form>
+</body>
+</html>

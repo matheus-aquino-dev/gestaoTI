@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detalhes do Ativo</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f8f9fa;
+            --border-color: #ddd;
+            --hover-color: #e9ecef;
+            --text-color: #333;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        h3 {
+            color: var(--primary-color);
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .details-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+        }
+
+        .details-container p {
+            margin: 12px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .details-container strong {
+            display: inline-block;
+            min-width: 150px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .details-container span {
+            flex: 1;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-disponivel {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-alocado {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-manutencao {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
+            vertical-align: middle;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--light-bg);
+        }
+
+        tr:hover {
+            background-color: var(--hover-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            min-width: 150px;
+        }
+
+        .info-value {
+            flex: 1;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background-color: var(--secondary-color);
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Detalhes do Ativo: {{ nome_ativo }}</h1>
+    
+    <div class="details-container">
+        <div class="section-title">Informações Gerais</div>
+        
+        <div class="info-row">
+            <div class="info-label">Nome:</div>
+            <div class="info-value">{{ ativo['nome'] }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Descrição:</div>
+            <div class="info-value">{{ ativo['descricao'] or 'Não informada' }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Status:</div>
+            <div class="info-value">
+                <span class="status-badge status-{{ ativo['status'].lower() }}">{{ ativo['status'] }}</span>
+            </div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Patrimônio:</div>
+            <div class="info-value">{{ ativo['patrimonio'] or 'Não informado' }}</div>
+        </div>
+        
+        {% if 'notebook' in request.path %}
+        <div class="info-row">
+            <div class="info-label">Nº de Série:</div>
+            <div class="info-value">{{ ativo['numero_serie'] or 'Não informado' }}</div>
+        </div>
+        {% endif %}
+        
+        {% if 'celular' in request.path %}
+        <div class="info-row">
+            <div class="info-label">Nº Chip:</div>
+            <div class="info-value">{{ ativo['numero_chip'] or 'Não informado' }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">IMEI 1:</div>
+            <div class="info-value">{{ ativo['imei1'] or 'Não informado' }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">IMEI 2:</div>
+            <div class="info-value">{{ ativo['imei2'] or 'Não informado' }}</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="section-title">Histórico de Alocações</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Data de Alocação</th>
+                <th>Usuário</th>
+                <th>Data de Devolução</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for registro in historico %}
+            <tr>
+                <td>{{ registro[0] }}</td>
+                <td>{{ registro[2] }}</td>
+                <td>{{ registro[1] if registro[1] else 'Alocado' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="empty-state">Nenhum histórico de alocação para este ativo.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <a href="{{ url_for('index') }}" class="back-link">Voltar</a>
+</body>
+</html>

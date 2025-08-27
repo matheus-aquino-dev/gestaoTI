@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Editar Ativo</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --light-bg: #f8f9fa;
+            --border-color: #ddd;
+            --hover-color: #e9ecef;
+            --text-color: #333;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            max-width: 600px;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        input, select {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+
+        input[type=submit] {
+            margin-top: 10px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        input[type=submit]:hover {
+            background-color: #2980b9;
+        }
+
+        input[type=submit]:active {
+            transform: translateY(1px);
+        }
+
+        .campo-especifico {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 10px;
+            padding: 15px;
+            background-color: var(--light-bg);
+            border-radius: 6px;
+            border-left: 4px solid var(--secondary-color);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        a:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .status-disponivel {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-alocado {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-em-manutencao {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-descartado {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Editar Ativo: {{ ativo.nome }}</h1>
+    <form method="post">
+        <div class="form-group">
+            <label for="nome">Nome do Ativo:</label> 
+            <input type="text" name="nome" id="nome" value="{{ ativo.nome }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="modelo">Modelo:</label> 
+            <input type="text" name="modelo" id="modelo" value="{{ ativo.modelo }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="categoria_select">Categoria:</label>
+            <select name="categoria_id" id="categoria_select" required>
+                {% for cat in categorias %}<option value="{{ cat.id }}" data-nome="{{ cat.nome|lower }}" {% if cat.id == ativo.categoria_id %}selected{% endif %}>{{ cat.nome }}</option>{% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="centro_custo_id">Centro de Custo:</label>
+            <select name="centro_custo_id" id="centro_custo_id" required>
+                {% for cc in centros_custo %}<option value="{{ cc.id }}" {% if cc.id == ativo.centro_custo_id %}selected{% endif %}>{{ cc.nome }}</option>{% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="valor">Valor (R$):</label> 
+            <input type="number" name="valor" id="valor" step="0.01" value="{{ ativo.valor }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="data_aquisicao">Data de Aquisição:</label> 
+            <input type="date" name="data_aquisicao" id="data_aquisicao" value="{{ ativo.data_aquisicao }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="status">Status:</label>
+            <select name="status" id="status">
+                {% for s in ['Disponivel', 'Alocado', 'Em Manutenção', 'Descartado'] %}
+                <option value="{{ s }}" {% if s == ativo.status %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="descricao">Descrição:</label> 
+            <input type="text" name="descricao" id="descricao" value="{{ ativo.descricao }}">
+        </div>
+        
+        <div id="campos_notebook" class="campo-especifico">
+            <label for="patrimonio_notebook">Patrimônio:</label> 
+            <input type="text" name="patrimonio" id="patrimonio_notebook" value="{{ ativo.patrimonio }}">
+            <label for="numero_serie">Número de Série:</label> 
+            <input type="text" name="numero_serie" id="numero_serie" value="{{ ativo.numero_serie }}">
+        </div>
+        
+        <div id="campos_celular" class="campo-especifico">
+            <label for="patrimonio_celular">Patrimônio:</label> 
+            <input type="text" name="patrimonio" id="patrimonio_celular" value="{{ ativo.patrimonio }}">
+            <label for="numero_chip">Nº Chip (ICCID):</label> 
+            <input type="text" name="numero_chip" id="numero_chip" value="{{ ativo.numero_chip }}">
+            <label for="imei1">IMEI 1:</label> 
+            <input type="text" name="imei1" id="imei1" value="{{ ativo.imei1 }}">
+            <label for="imei2">IMEI 2:</label> 
+            <input type="text" name="imei2" id="imei2" value="{{ ativo.imei2 }}">
+        </div>
+        
+        <input type="submit" value="Salvar Alterações">
+    </form>
+    
+    <a href="{{ url_for('index') }}">Voltar</a>
+    
+    <script>
+        function toggleCampos() {
+            document.querySelectorAll('.campo-especifico').forEach(el => { el.style.display = 'none'; });
+            const select = document.getElementById('categoria_select');
+            const nome = select.options[select.selectedIndex].getAttribute('data-nome');
+            if (nome && nome.includes('notebook')) document.getElementById('campos_notebook').style.display = 'flex';
+            if (nome && nome.includes('celular')) document.getElementById('campos_celular').style.display = 'flex';
+        }
+        document.getElementById('categoria_select').addEventListener('change', toggleCampos);
+        document.addEventListener('DOMContentLoaded', toggleCampos);
+    </script>
+</body>
+</html>

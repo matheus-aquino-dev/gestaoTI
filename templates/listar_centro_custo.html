@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gerenciar Centros de Custo</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f8f9fa;
+            --border-color: #ddd;
+            --hover-color: #e9ecef;
+            --text-color: #333;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        .add-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .add-button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
+            vertical-align: middle;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--light-bg);
+        }
+
+        tr:hover {
+            background-color: var(--hover-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        td a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            margin-right: 12px;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        td a:hover {
+            color: var(--accent-color);
+        }
+
+        td a:last-child {
+            color: var(--accent-color);
+        }
+
+        td a:last-child:hover {
+            color: #c0392b;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>Centros de Custo</h1>
+    
+    <a href="{{ url_for('adicionar_centro_custo_route') }}" class="add-button">Adicionar Novo</a>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cc in centros_custo %}
+            <tr>
+                <td>{{ cc[0] }}</td>
+                <td>{{ cc[1] }}</td>
+                <td>
+                    <a href="{{ url_for('editar_centro_custo_route', id=cc[0]) }}">Editar</a>
+                    <a href="{{ url_for('excluir_centro_custo_route', id=cc[0]) }}" onclick="return confirm('Tem certeza?');">Excluir</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="empty-state">Nenhum centro de custo cadastrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <a href="{{ url_for('index') }}" class="back-link">Voltar</a>
+</body>
+</html>

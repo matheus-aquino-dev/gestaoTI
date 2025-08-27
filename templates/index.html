@@ -3,78 +3,199 @@
 <head>
     <title>Gestor de Ativos TI</title>
     <style>
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .container { display: flex; gap: 20px; }
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --border-color: #bdc3c7;
+            --hover-color: #d5dbdb;
+            --text-color: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: white;
+        }
+
+        .header-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .header-bar span {
+            font-size: 1rem;
+        }
+
+        .header-bar a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .header-bar a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .nav a:hover {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+
+        hr {
+            border: none;
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 20px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
+            vertical-align: middle;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--light-bg);
+        }
+
+        tr:hover {
+            background-color: var(--hover-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        td a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            margin-right: 12px;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        td a:hover {
+            color: var(--accent-color);
+        }
+
+        td a:last-child {
+            color: var(--accent-color);
+        }
+
+        td a:last-child:hover {
+            color: #c0392b;
+        }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>Lista de Ativos</h1>
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Nome</th>
-            <th>Categoria</th>
-            <th>Número de Série</th>
-            <th>Status</th>
-        </tr>
-        {% for ativo in ativos %}
-        <tr>
-            <td>{{ ativo[0] }}</td>
-            <td>{{ ativo[1] }}</td>
-            <td>{{ ativo[2] }}</td>
-            <td>{{ ativo[3] }}</td>
-            <td>{{ ativo[4] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    <br>
-    <div class="container">
-        <a href="{{ url_for('adicionar_categoria_route') }}">Adicionar Categoria</a> |
-        <a href="{{ url_for('adicionar_ativo_route') }}">Adicionar Ativo</a> |
-        <a href="{{ url_for('adicionar_usuario_route') }}">Adicionar Usuário</a> |
-        <a href="{{ url_for('alocar_ativo_route') }}">Alocar Ativo</a> |
-        <a href="{{ url_for('importar_csv_route') }}">Importar CSV</a> |
-        <a href="{{ url_for('exportar_csv_route') }}">Exportar CSV</a>
+    <div class="header-bar">
+        <h1>Painel de Ativos</h1>
+        <span>Olá, {{ current_user.nome }}! <a href="{{ url_for('logout') }}">Sair</a></span>
     </div>
-    <br>
-    <canvas id="relatorioChart" width="400" height="200"></canvas>
-    <script>
-        // Obter dados do Flask e converter para arrays
-        const chartCategories = {{ categorias|tojson|safe }} || [];
-        const chartTotals = {{ totais|tojson|safe }} || [];
-
-        // Depuração para verificar os dados
-        console.log('Categorias:', chartCategories);
-        console.log('Totais:', chartTotals);
-
-        // Verificar se há dados antes de criar o gráfico
-        if (chartCategories.length > 0 && chartTotals.length > 0) {
-            const ctx = document.getElementById('relatorioChart').getContext('2d');
-            const relatorioChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartCategories,
-                    datasets: [{
-                        label: 'Total de Ativos',
-                        data: chartTotals,
-                        backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56', '#FF6384']
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        } else {
-            document.getElementById('relatorioChart').style.display = 'none';
-            console.log('Nenhum dado disponível para o gráfico.');
-        }
-    </script>
+    <div class="nav">
+        <a href="{{ url_for('adicionar_ativo') }}">Adicionar Ativo</a> |
+        <a href="{{ url_for('alocar_ativo') }}">Alocar Ativo</a> |
+        <a href="{{ url_for('devolver_ativo') }}">Devolver Ativo</a> |
+        <a href="{{ url_for('listar_categorias') }}">Gerenciar Categorias</a> |
+        <a href="{{ url_for('listar_centros_custo') }}">Gerenciar Centros de Custo</a> |
+        <a href="{{ url_for('listar_usuarios') }}">Gerenciar Usuários</a>
+    </div>
+    <hr>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Modelo</th>
+                <th>Categoria</th>
+                <th>Centro de Custo</th>
+                <th>Valor (R$)</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ativo in ativos %}
+            <tr>
+                <td>{{ ativo.id }}</td>
+                <td>{{ ativo.nome }}</td>
+                <td>{{ ativo.modelo or 'N/A' }}</td>
+                <td>{{ ativo.categoria or 'N/A' }}</td>
+                <td>{{ ativo.centro_custo or 'N/A' }}</td>
+                <td>{{ "%.2f"|format(ativo.valor|float) if ativo.valor else 'N/A' }}</td>
+                <td>{{ ativo.status }}</td>
+                <td>
+                    <a href="{{ url_for('detalhes_ativo', id=ativo.id) }}">Detalhes</a>
+                    <a href="{{ url_for('editar_ativo', id=ativo.id) }}">Editar</a>
+                    <a href="{{ url_for('excluir_ativo', id=ativo.id) }}" onclick="return confirm('Tem certeza?');">Excluir</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 20px; font-style: italic; color: #7f8c8d;">Nenhum ativo encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </body>
 </html>

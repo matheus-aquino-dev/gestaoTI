@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Devolver Ativo</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --warning-color: #f39c12;
+            --light-bg: #f8f9fa;
+            --border-color: #ddd;
+            --hover-color: #e9ecef;
+            --text-color: #333;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        form {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            background-color: white;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+
+        input[type="submit"] {
+            display: inline-block;
+            margin-top: 20px;
+            background-color: var(--warning-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 12px 25px;
+            font-weight: 600;
+            font-size: 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #e67e22;
+        }
+
+        input[type="submit"]:active {
+            transform: translateY(1px);
+        }
+
+        a {
+            display: inline-block;
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        a:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            background-color: #fff3cd;
+            border-left: 4px solid var(--warning-color);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>Devolver Ativo</h1>
+    
+    <div class="info-box">
+        <p>Selecione um ativo alocado abaixo para registrar sua devolução.</p>
+    </div>
+    
+    <form method="post">
+        <div class="form-group">
+            <label for="alocacao_id">Ativo Alocado:</label>
+            <select name="alocacao_id" id="alocacao_id" required>
+                <option value="">Selecione uma alocação...</option>
+                {% for alocacao in alocacoes %}
+                <option value="{{ alocacao.id }}">{{ alocacao.ativo }} (com {{ alocacao.usuario }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <input type="submit" value="Devolver">
+    </form>
+    
+    <a href="{{ url_for('index') }}">Voltar</a>
+</body>
+</html>

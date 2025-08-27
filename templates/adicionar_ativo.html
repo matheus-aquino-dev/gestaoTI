@@ -1,25 +1,177 @@
 <!DOCTYPE html>
 <html>
-<head><title>Adicionar Ativo</title></head>
+<head>
+    <title>Adicionar Ativo</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --light-bg: #f8f9fa;
+            --border-color: #ddd;
+            --hover-color: #e9ecef;
+            --text-color: #333;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 500px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        input, select {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+
+        input[type=submit] {
+            margin-top: 10px;
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        input[type=submit]:hover {
+            background-color: #218838;
+        }
+
+        input[type=submit]:active {
+            transform: translateY(1px);
+        }
+
+        .campo-especifico {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 10px;
+            padding: 15px;
+            background-color: var(--light-bg);
+            border-radius: 6px;
+            border-left: 4px solid var(--secondary-color);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        a:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+    </style>
+</head>
 <body>
     <h1>Adicionar Ativo</h1>
     <form method="post">
-        <label>Nome:</label><br>
-        <input type="text" name="nome" required><br>
-        <label>Descrição:</label><br>
-        <input type="text" name="descricao"><br>
-        <label>Categoria:</label><br>
-        <select name="categoria_id" required>
-            {% for categoria in categorias %}
-            <option value="{{ categoria[0] }}">{{ categoria[1] }}</option>
-            {% endfor %}
-        </select><br>
-        <label>Número de Série:</label><br>
-        <input type="text" name="numero_serie" required><br>
-        <label>Data de Aquisição (YYYY-MM-DD):</label><br>
-        <input type="date" name="data_aquisicao" required><br><br>
-        <input type="submit" value="Adicionar">
+        <label>Nome do Ativo:</label> 
+        <input type="text" name="nome" required>
+        
+        <label>Modelo:</label> 
+        <input type="text" name="modelo">
+        
+        <label>Categoria:</label>
+        <select name="categoria_id" id="categoria_select" required>
+            <option value="">Selecione...</option>
+            {% for cat in categorias %}<option value="{{ cat.id }}" data-nome="{{ cat.nome|lower }}">{{ cat.nome }}</option>{% endfor %}
+        </select>
+        
+        <label>Centro de Custo:</label>
+        <select name="centro_custo_id" required>
+            <option value="">Selecione...</option>
+            {% for cc in centros_custo %}<option value="{{ cc.id }}">{{ cc.nome }}</option>{% endfor %}
+        </select>
+        
+        <label>Valor (R$):</label> 
+        <input type="number" name="valor" step="0.01" placeholder="Ex: 1250.99">
+        
+        <label>Data de Aquisição:</label> 
+        <input type="date" name="data_aquisicao" required>
+        
+        <label>Descrição:</label> 
+        <input type="text" name="descricao">
+        
+        <div id="campos_notebook" class="campo-especifico">
+            <label>Patrimônio:</label> <input type="text" name="patrimonio">
+            <label>Número de Série:</label> <input type="text" name="numero_serie">
+        </div>
+        
+        <div id="campos_celular" class="campo-especifico">
+            <label>Patrimônio:</label> <input type="text" name="patrimonio">
+            <label>Nº Chip (ICCID):</label> <input type="text" name="numero_chip">
+            <label>IMEI 1:</label> <input type="text" name="imei1">
+            <label>IMEI 2:</label> <input type="text" name="imei2">
+        </div>
+        
+        <input type="submit" value="Adicionar Ativo">
     </form>
-    <br><a href="{{ url_for('index') }}">Voltar</a>
+    
+    <a href="{{ url_for('index') }}">Voltar</a>
+    
+    <script>
+        document.getElementById('categoria_select').addEventListener('change', function() {
+            document.querySelectorAll('.campo-especifico').forEach(el => { el.style.display = 'none'; });
+            const nome = this.options[this.selectedIndex].getAttribute('data-nome');
+            if (nome && nome.includes('notebook')) document.getElementById('campos_notebook').style.display = 'flex';
+            if (nome && nome.includes('celular')) document.getElementById('campos_celular').style.display = 'flex';
+        });
+    </script>
 </body>
 </html>
