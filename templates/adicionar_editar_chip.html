@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ titulo }}</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f5f7fa;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --border-color: #ddd;
+            --hover-bg: #f8f9fa;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            margin: 0;
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 500px;
+            background-color: var(--white);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background-color: var(--white);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        input[type="submit"] {
+            background-color: var(--secondary-color);
+            color: var(--white);
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        a:hover {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #c0392b;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* Adicionando um pouco de responsividade */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            form {
+                max-width: 100%;
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+
+        /* Container para melhor organização */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Estilo para campos obrigatórios */
+        label::after {
+            content: " *";
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        label:not(:has(+ input[required]))::after,
+        label:not(:has(+ select[required]))::after {
+            content: "";
+        }
+
+        /* Estilo para o link de cancelar */
+        .cancel-link {
+            margin-top: 20px;
+            display: inline-flex;
+            align-items: center;
+            color: var(--primary-color);
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+        }
+
+        .cancel-link::before {
+            content: "←";
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .cancel-link:hover {
+            background-color: rgba(44, 62, 80, 0.05);
+            color: var(--primary-color);
+        }
+
+        /* Dica visual para o campo de funcionário */
+        .form-tip {
+            font-size: 13px;
+            color: #777;
+            margin-top: -8px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ titulo }}</h1>
+        <form method="post">
+            <div class="form-group">
+                <label>Número do Chip:</label>
+                <input type="text" name="numero" value="{{ chip.numero if chip else '' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Funcionário Responsável:</label>
+                <input type="text" name="funcionario_nome" value="{{ chip.funcionario_nome if chip else '' }}" placeholder="Nome e Apelido">
+                <div class="form-tip">Digite o nome completo do funcionário responsável</div>
+            </div>
+            
+            <div class="form-group">
+                <label>Centro de Custo:</label>
+                <select name="centro_custo_id" required>
+                    <option value="">Selecione...</option>
+                    {% for cc in centros_custo %}
+                    <option value="{{ cc.id }}" {% if chip and cc.id == chip.centro_custo_id %}selected{% endif %}>{{ cc.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Função / Uso:</label>
+                <input type="text" name="funcao" value="{{ chip.funcao if chip else '' }}" placeholder="Ex: Modem, Telemetria, Celular...">
+            </div>
+            
+            <div class="form-group">
+                <label>Valor Mensal (R$):</label>
+                <input type="number" name="valor" step="0.01" value="{{ chip.valor if chip else '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Dia do Vencimento da Fatura:</label>
+                <input type="number" name="vencimento_fatura" min="1" max="31" value="{{ chip.vencimento_fatura if chip else '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Status:</label>
+                <select name="status">
+                    <option value="Ativo" {% if chip and chip.status == 'Ativo' %}selected{% endif %}>Ativo</option>
+                    <option value="Cancelado" {% if chip and chip.status == 'Cancelado' %}selected{% endif %}>Cancelado</option>
+                    <option value="Em estoque" {% if chip and chip.status == 'Em estoque' %}selected{% endif %}>Em estoque</option>
+                </select>
+            </div>
+            
+            <input type="submit" value="Salvar">
+        </form>
+        <br>
+        <a href="{{ url_for('listar_chips') }}" class="cancel-link">Cancelar</a>
+    </div>
+</body>
+</html>

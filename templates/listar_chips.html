@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gerir Chips</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f5f7fa;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --border-color: #ddd;
+            --hover-bg: #f8f9fa;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            margin: 0;
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        a {
+            color: var(--white);
+            background-color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 18px;
+            border-radius: 6px;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        a:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.9em;
+            background-color: var(--white);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: none;
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: var(--white);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: var(--hover-bg);
+        }
+
+        td a {
+            color: var(--white);
+            background-color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        td a:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        td[colspan="8"] {
+            text-align: center;
+            padding: 25px;
+            font-style: italic;
+            color: #777;
+            background-color: #f8f9fa;
+        }
+
+        /* Status styles */
+        td:nth-child(7) {
+            font-weight: 500;
+        }
+
+        /* Adicionando um pouco de responsividade */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            th, td {
+                padding: 10px 12px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            a {
+                padding: 8px 14px;
+                font-size: 14px;
+            }
+        }
+
+        /* Container para melhor organização */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Botão de voltar */
+        .back-link {
+            margin-top: 25px;
+            display: inline-flex;
+            align-items: center;
+            color: var(--primary-color);
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+        }
+
+        .back-link::before {
+            content: "←";
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .back-link:hover {
+            background-color: rgba(44, 62, 80, 0.05);
+            color: var(--primary-color);
+        }
+
+        /* Destaque para status */
+        .status-active {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        .status-cancelled {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .status-instock {
+            color: var(--warning-color);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gerir Chips</h1>
+        <p><a href="{{ url_for('adicionar_chip') }}">Adicionar Novo Chip</a></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Funcionário</th>
+                    <th>Centro de Custo</th>
+                    <th>Função</th>
+                    <th>Valor (R$)</th>
+                    <th>Vencimento (Dia)</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for chip in chips %}
+                <tr>
+                    <td>{{ chip.numero }}</td>
+                    <td>{{ chip.funcionario_nome or 'N/A' }}</td>
+                    <td>{{ chip.centro_custo or 'N/A' }}</td>
+                    <td>{{ chip.funcao or 'N/A' }}</td>
+                    <td>{{ "%.2f"|format(chip.valor|float) if chip.valor else 'N/A' }}</td>
+                    <td>{{ chip.vencimento_fatura or 'N/A' }}</td>
+                    <td class="{% if chip.status == 'Ativo' %}status-active{% elif chip.status == 'Cancelado' %}status-cancelled{% elif chip.status == 'Em estoque' %}status-instock{% endif %}">{{ chip.status }}</td>
+                    <td>
+                        <a href="{{ url_for('editar_chip', id=chip.id) }}">Editar</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align: center;">Nenhum chip registado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
+        <a href="{{ url_for('index') }}" class="back-link">Voltar ao Painel</a>
+    </div>
+</body>
+</html>

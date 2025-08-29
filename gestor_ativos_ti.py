@@ -49,6 +49,11 @@ def criar_banco():
                  FOREIGN KEY (ativo_id) REFERENCES ativos(id))''')
     c.execute('''CREATE TABLE IF NOT EXISTS historico_alocacoes (id INTEGER PRIMARY KEY, ativo_id INTEGER, funcionario_nome TEXT, data_alocacao DATE, data_devolucao DATE,
                  FOREIGN KEY (ativo_id) REFERENCES ativos(id))''')
+    # ATUALIZAÇÃO: Tabela de chips agora usa 'funcionario_nome' em vez de 'funcionario_id'
+    c.execute('''CREATE TABLE IF NOT EXISTS chips (
+                 id INTEGER PRIMARY KEY, numero TEXT NOT NULL UNIQUE, funcionario_nome TEXT, 
+                 centro_custo_id INTEGER, funcao TEXT, valor REAL, vencimento_fatura INTEGER, status TEXT DEFAULT 'Ativo',
+                 FOREIGN KEY (centro_custo_id) REFERENCES centros_custo(id))''')
     conn.commit()
     conn.close()
 
@@ -100,10 +105,12 @@ def logout():
 @login_required
 def index():
     query = """
-        SELECT a.id, a.nome, cat.nome as categoria, cc.nome as centro_custo, a.modelo, a.valor, a.status
+        SELECT a.id, a.nome, cat.nome as categoria, cc.nome as centro_custo, 
+               a.modelo, a.valor, a.status, al.funcionario_nome
         FROM ativos a 
         LEFT JOIN categorias cat ON a.categoria_id = cat.id
         LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id
+        LEFT JOIN alocacoes al ON a.id = al.ativo_id
     """
     return render_template('index.html', ativos=db_query(query))
 
@@ -112,29 +119,14 @@ def index():
 @login_required
 def download_modelo_csv():
     output = io.StringIO()
-    # CORREÇÃO: Usar ponto e vírgula como delimitador
     writer = csv.writer(output, delimiter=';')
-    
-    header = [
-        'Nome', 'Modelo', 'Categoria', 'Centro de Custo', 'Valor', 'DataAquisicao',
-        'Patrimonio', 'NumeroSerie', 'Descricao', 'NumeroChip', 'IMEI1', 'IMEI2'
-    ]
+    header = ['Nome', 'Modelo', 'Categoria', 'Centro de Custo', 'Valor', 'DataAquisicao', 'Patrimonio', 'NumeroSerie', 'Descricao', 'NumeroChip', 'IMEI1', 'IMEI2']
     writer.writerow(header)
-    
-    example_row = [
-        'Notebook Exemplo', 'Inspiron 15', 'Notebooks', 'TI São Paulo', '4500,50', '2025-01-15',
-        'PAT-00123', 'BRJ123XYZ', 'Notebook i5 com 8GB de RAM', '', '', ''
-    ]
+    example_row = ['Notebook Exemplo', 'Inspiron 15', 'Notebooks', 'TI São Paulo', '4500,50', '2025-01-15', 'PAT-00123', 'BRJ123XYZ', 'Notebook i5 com 8GB de RAM', '', '', '']
     writer.writerow(example_row)
-    
     output.seek(0)
     
-    return send_file(
-        io.BytesIO(output.getvalue().encode('utf-8-sig')), # Usar utf-8-sig para melhor compatibilidade com Excel
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name='modelo_importacao.csv'
-    )
+    return send_file(io.BytesIO(output.getvalue().encode('utf-8-sig')), mimetype='text/csv', as_attachment=True, download_name='modelo_importacao.csv')
 
 # --- Rotas de Importação ---
 @app.route('/importar', methods=['GET', 'POST'])
@@ -145,28 +137,20 @@ def importar_csv():
         if not arquivo or arquivo.filename == '':
             flash('Nenhum ficheiro selecionado.', 'danger')
             return redirect(request.url)
-
         if not arquivo.filename.endswith('.csv'):
             flash('Formato de ficheiro inválido. Por favor, envie um .csv', 'danger')
             return redirect(request.url)
-
         try:
             stream = arquivo.stream.read().decode("utf-8")
-            # Tenta detetar o delimitador
             delimiter = ';' if ';' in stream.splitlines()[0] else ','
             csv_data = csv.reader(stream.splitlines(), delimiter=delimiter)
-            
             headers = next(csv_data)
             preview_data = [dict(zip(headers, row)) for row in csv_data]
-
             session['preview_data'] = json.dumps(preview_data)
-            
             return render_template('preview_importacao.html', headers=headers, data=preview_data)
-
         except Exception as e:
             flash(f'Ocorreu um erro ao processar o ficheiro: {e}', 'danger')
             return redirect(request.url)
-
     return render_template('importar_csv.html')
 
 @app.route('/importar/confirmar', methods=['POST'])
@@ -176,47 +160,35 @@ def confirmar_importacao():
     if not preview_data_json:
         flash('Nenhum dado para importar.', 'danger')
         return redirect(url_for('importar_csv'))
-
     data_to_import = json.loads(preview_data_json)
-    
     try:
         for row in data_to_import:
             cat_nome = row.get('Categoria', '').strip()
             cc_nome = row.get('Centro de Custo', '').strip()
-
             if not cat_nome or not cc_nome: continue
-
             categoria = db_query("SELECT id FROM categorias WHERE nome = ?", (cat_nome,), fetchone=True)
             if not categoria:
                 db_query("INSERT INTO categorias (nome) VALUES (?)", (cat_nome,), commit=True)
                 categoria = db_query("SELECT id FROM categorias WHERE nome = ?", (cat_nome,), fetchone=True)
-            
             cc = db_query("SELECT id FROM centros_custo WHERE nome = ?", (cc_nome,), fetchone=True)
             if not cc:
                 db_query("INSERT INTO centros_custo (nome) VALUES (?)", (cc_nome,), commit=True)
                 cc = db_query("SELECT id FROM centros_custo WHERE nome = ?", (cc_nome,), fetchone=True)
-            
-            # Substitui vírgula por ponto no valor
             valor_str = row.get('Valor', '').replace(',', '.')
-            
             ativo_dados = {
                 "nome": row.get('Nome'), "modelo": row.get('Modelo'), "categoria_id": categoria['id'],
                 "centro_custo_id": cc['id'], "valor": valor_str or None,
                 "data_aquisicao": row.get('DataAquisicao'), "patrimonio": row.get('Patrimonio'),
                 "numero_serie": row.get('NumeroSerie'), "descricao": row.get('Descricao'),
-                "numero_chip": row.get('NumeroChip'), "imei1": row.get('IMEI1'), "imei2": row.get('IMEI2'),
-                "status": 'Disponivel'
+                "numero_chip": row.get('NumeroChip'), "imei1": row.get('IMEI1'), "imei2": row.get('IMEI2'), "status": 'Disponivel'
             }
-            
             ativo_dados_limpo = {k: v for k, v in ativo_dados.items() if v}
             colunas = ', '.join(ativo_dados_limpo.keys())
             placeholders = ', '.join(['?'] * len(ativo_dados_limpo))
             db_query(f"INSERT INTO ativos ({colunas}) VALUES ({placeholders})", list(ativo_dados_limpo.values()), commit=True)
-
         flash('Ativos importados com sucesso!', 'success')
     except Exception as e:
         flash(f'Ocorreu um erro na importação final: {e}', 'danger')
-
     return redirect(url_for('index'))
 
 # --- Rotas de Ativos ---
@@ -230,9 +202,7 @@ def adicionar_ativo():
         placeholders = ', '.join(['?'] * len(dados))
         db_query(f"INSERT INTO ativos ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
         return redirect(url_for('index'))
-    return render_template('adicionar_ativo.html', 
-                           categorias=db_query("SELECT * FROM categorias ORDER BY nome"), 
-                           centros_custo=db_query("SELECT * FROM centros_custo ORDER BY nome"))
+    return render_template('adicionar_ativo.html', categorias=db_query("SELECT * FROM categorias ORDER BY nome"), centros_custo=db_query("SELECT * FROM centros_custo ORDER BY nome"))
 
 @app.route('/ativo/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
@@ -242,10 +212,7 @@ def editar_ativo(id):
         set_clause = ', '.join([f"{key} = ?" for key in dados.keys()])
         db_query(f"UPDATE ativos SET {set_clause} WHERE id = ?", list(dados.values()) + [id], commit=True)
         return redirect(url_for('index'))
-    return render_template('editar_ativo.html', 
-                           ativo=db_query("SELECT * FROM ativos WHERE id = ?", (id,), fetchone=True),
-                           categorias=db_query("SELECT * FROM categorias ORDER BY nome"), 
-                           centros_custo=db_query("SELECT * FROM centros_custo ORDER BY nome"))
+    return render_template('editar_ativo.html', ativo=db_query("SELECT * FROM ativos WHERE id = ?", (id,), fetchone=True), categorias=db_query("SELECT * FROM categorias ORDER BY nome"), centros_custo=db_query("SELECT * FROM centros_custo ORDER BY nome"))
 
 @app.route('/ativo/<int:id>/excluir')
 @login_required
@@ -258,9 +225,7 @@ def excluir_ativo(id):
 def detalhes_ativo(id):
     ativo_query = "SELECT a.*, cat.nome as categoria, cc.nome as centro_custo FROM ativos a LEFT JOIN categorias cat ON a.categoria_id = cat.id LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id WHERE a.id = ?"
     historico_query = "SELECT * FROM historico_alocacoes WHERE ativo_id = ? ORDER BY data_alocacao DESC"
-    return render_template('detalhes_ativo.html', 
-                           ativo=db_query(ativo_query, (id,), fetchone=True),
-                           historico=db_query(historico_query, (id,)))
+    return render_template('detalhes_ativo.html', ativo=db_query(ativo_query, (id,), fetchone=True), historico=db_query(historico_query, (id,)))
 
 # --- Rotas de Alocação ---
 @app.route('/alocar', methods=['GET', 'POST'])
@@ -270,14 +235,11 @@ def alocar_ativo():
         ativo_id = request.form['ativo_id']
         funcionario_nome = request.form['funcionario_nome']
         data = datetime.now().date()
-        db_query("INSERT INTO alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", 
-                 (ativo_id, funcionario_nome, data), commit=True)
-        db_query("INSERT INTO historico_alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", 
-                 (ativo_id, funcionario_nome, data), commit=True)
+        db_query("INSERT INTO alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", (ativo_id, funcionario_nome, data), commit=True)
+        db_query("INSERT INTO historico_alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", (ativo_id, funcionario_nome, data), commit=True)
         db_query("UPDATE ativos SET status = 'Alocado' WHERE id = ?", (ativo_id,), commit=True)
         return redirect(url_for('index'))
-    return render_template('alocar_ativo.html',
-                           ativos=db_query("SELECT * FROM ativos WHERE status = 'Disponivel'"))
+    return render_template('alocar_ativo.html', ativos=db_query("SELECT * FROM ativos WHERE status = 'Disponivel'"))
 
 @app.route('/devolver', methods=['GET', 'POST'])
 @login_required
@@ -286,12 +248,50 @@ def devolver_ativo():
         alocacao_id = request.form['alocacao_id']
         alocacao = db_query("SELECT ativo_id FROM alocacoes WHERE id = ?", (alocacao_id,), fetchone=True)
         db_query("UPDATE ativos SET status = 'Disponivel' WHERE id = ?", (alocacao['ativo_id'],), commit=True)
-        db_query("UPDATE historico_alocacoes SET data_devolucao = ? WHERE ativo_id = ? AND data_devolucao IS NULL", 
-                 (datetime.now().date(), alocacao['ativo_id']), commit=True)
+        db_query("UPDATE historico_alocacoes SET data_devolucao = ? WHERE ativo_id = ? AND data_devolucao IS NULL", (datetime.now().date(), alocacao['ativo_id']), commit=True)
         db_query("DELETE FROM alocacoes WHERE id = ?", (alocacao_id,), commit=True)
         return redirect(url_for('index'))
     alocacoes_query = "SELECT al.id, a.nome as ativo, al.funcionario_nome FROM alocacoes al JOIN ativos a ON al.ativo_id = a.id"
     return render_template('devolver_ativo.html', alocacoes=db_query(alocacoes_query))
+
+# --- ROTAS DE GESTÃO DE CHIPS ---
+@app.route('/chips')
+@login_required
+def listar_chips():
+    query = """
+        SELECT c.id, c.numero, c.funcionario_nome, cc.nome as centro_custo, c.funcao, c.valor, c.vencimento_fatura, c.status
+        FROM chips c
+        LEFT JOIN centros_custo cc ON c.centro_custo_id = cc.id
+        ORDER BY c.numero
+    """
+    return render_template('listar_chips.html', chips=db_query(query))
+
+@app.route('/chips/adicionar', methods=['GET', 'POST'])
+@login_required
+def adicionar_chip():
+    if request.method == 'POST':
+        dados = {k: v for k, v in request.form.to_dict().items() if v}
+        colunas = ', '.join(dados.keys())
+        placeholders = ', '.join(['?'] * len(dados))
+        db_query(f"INSERT INTO chips ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
+        flash('Chip adicionado com sucesso!', 'success')
+        return redirect(url_for('listar_chips'))
+    return render_template('adicionar_editar_chip.html', titulo="Adicionar Chip", 
+                           centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
+
+@app.route('/chips/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def editar_chip(id):
+    if request.method == 'POST':
+        dados = request.form.to_dict()
+        set_clause = ', '.join([f"{key} = ?" for key in dados.keys()])
+        db_query(f"UPDATE chips SET {set_clause} WHERE id = ?", list(dados.values()) + [id], commit=True)
+        flash('Chip atualizado com sucesso!', 'success')
+        return redirect(url_for('listar_chips'))
+    return render_template('adicionar_editar_chip.html', 
+                           titulo="Editar Chip",
+                           chip=db_query("SELECT * FROM chips WHERE id = ?", (id,), fetchone=True),
+                           centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
 
 # --- Rotas de Gerenciamento ---
 # CENTROS DE CUSTO
