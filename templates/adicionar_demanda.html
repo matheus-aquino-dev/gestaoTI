@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block title %}Adicionar Demanda{% endblock %}
+
+{% block content %}
+<style>
+    /* Estilos específicos para a página de adicionar demanda */
+    .page-header {
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
+    .page-title {
+        font-size: 32px;
+        color: #2c3e50;
+        font-weight: 600;
+        margin: 0;
+        padding-bottom: 15px;
+        position: relative;
+    }
+    
+    .page-title::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(to right, #3498db, #2980b9);
+        border-radius: 3px;
+    }
+    
+    .form-container {
+        max-width: 700px;
+        background: white;
+        padding: 35px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        margin: 0 auto;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .form-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 8px;
+        height: 100%;
+        background: linear-gradient(to bottom, #3498db, #2980b9);
+        border-radius: 15px 0 0 15px;
+    }
+    
+    .form-container:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+        position: relative;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 12px;
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 16px;
+    }
+    
+    .form-label::after {
+        content: " *";
+        color: #e74c3c;
+        font-weight: bold;
+    }
+    
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background-color: #f9f9f9;
+    }
+    
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: #3498db;
+        background-color: white;
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+    }
+    
+    .form-textarea {
+        resize: vertical;
+        min-height: 140px;
+        font-family: inherit;
+    }
+    
+    .urgency-select {
+        position: relative;
+    }
+    
+    .urgency-select::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-top: 10px solid #3498db;
+        pointer-events: none;
+    }
+    
+    .submit-button {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        padding: 16px 30px;
+        border: none;
+        border-radius: 8px;
+        font-size: 17px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 15px;
+        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+        width: 100%;
+    }
+    
+    .submit-button:hover {
+        background: linear-gradient(135deg, #2980b9, #1f5e95);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(52, 152, 219, 0.4);
+    }
+    
+    .submit-button:active {
+        transform: translateY(1px);
+        box-shadow: 0 3px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    .form-hint {
+        font-size: 14px;
+        color: #7f8c8d;
+        margin-top: 8px;
+        font-style: italic;
+    }
+    
+    .urgency-indicators {
+        display: flex;
+        gap: 20px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .urgency-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        padding: 10px 15px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .urgency-indicator:hover {
+        transform: translateY(-2px);
+    }
+    
+    .urgency-baixa {
+        background-color: rgba(39, 174, 96, 0.1);
+        color: #27ae60;
+    }
+    
+    .urgency-media {
+        background-color: rgba(243, 156, 18, 0.1);
+        color: #f39c12;
+    }
+    
+    .urgency-alta {
+        background-color: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+    }
+    
+    .urgency-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+    }
+    
+    .urgency-baixa .urgency-dot {
+        background-color: #27ae60;
+    }
+    
+    .urgency-media .urgency-dot {
+        background-color: #f39c12;
+    }
+    
+    .urgency-alta .urgency-dot {
+        background-color: #e74c3c;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 500;
+        margin-top: 30px;
+        transition: all 0.3s ease;
+        padding: 8px 0;
+    }
+    
+    .back-link:hover {
+        color: #2980b9;
+    }
+    
+    .back-link::before {
+        content: "←";
+        margin-right: 10px;
+        font-weight: bold;
+    }
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 25px;
+            margin: 0 15px;
+        }
+        
+        .urgency-indicators {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .submit-button {
+            padding: 14px 20px;
+        }
+    }
+    
+    /* Animações */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .form-container {
+        animation: fadeIn 0.6s ease-out;
+    }
+    
+    .form-group {
+        animation: fadeIn 0.8s ease-out;
+        animation-fill-mode: both;
+    }
+    
+    .form-group:nth-child(1) { animation-delay: 0.1s; }
+    .form-group:nth-child(2) { animation-delay: 0.2s; }
+    .form-group:nth-child(3) { animation-delay: 0.3s; }
+    .form-group:nth-child(4) { animation-delay: 0.4s; }
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">Adicionar Nova Demanda (Interna)</h1>
+</div>
+
+<div class="form-container">
+    <form method="POST">
+        <div class="form-group">
+            <label for="nome_solicitante" class="form-label">Nome do Solicitante</label>
+            <input type="text" id="nome_solicitante" name="nome_solicitante" class="form-input" required placeholder="Digite o nome completo do solicitante">
+        </div>
+        
+        <div class="form-group">
+            <label for="departamento" class="form-label">Departamento</label>
+            <input type="text" id="departamento" name="departamento" class="form-input" required placeholder="Ex: TI, RH, Financeiro, Compras...">
+        </div>
+        
+        <div class="form-group">
+            <label for="descricao" class="form-label">Descrição</label>
+            <textarea id="descricao" name="descricao" class="form-textarea" required placeholder="Descreva detalhadamente a demanda ou problema a ser resolvido..."></textarea>
+            <div class="form-hint">Seja o mais específico possível para que possamos entender melhor sua necessidade e priorizar adequadamente.</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="urgencia" class="form-label">Urgência</label>
+            <select id="urgencia" name="urgencia" class="form-select urgency-select" required>
+                <option value="Baixa">Baixa</option>
+                <option value="Média">Média</option>
+                <option value="Alta">Alta</option>
+            </select>
+            
+            <div class="urgency-indicators">
+                <div class="urgency-indicator urgency-baixa">
+                    <div class="urgency-dot"></div>
+                    <div>
+                        <strong>Baixa</strong>
+                        <div>Pode aguardar até 5 dias úteis</div>
+                    </div>
+                </div>
+                <div class="urgency-indicator urgency-media">
+                    <div class="urgency-dot"></div>
+                    <div>
+                        <strong>Média</strong>
+                        <div>Resolver em até 3 dias úteis</div>
+                    </div>
+                </div>
+                <div class="urgency-indicator urgency-alta">
+                    <div class="urgency-dot"></div>
+                    <div>
+                        <strong>Alta</strong>
+                        <div>Resolver em até 24 horas</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="submit-button">
+            <span>📤</span> Enviar Demanda
+        </button>
+    </form>
+</div>
+
+<a href="{{ url_for('listar_demandas') }}" class="back-link">Voltar para Lista de Demandas</a>
+
+<script>
+    // Validação básica do formulário
+    document.querySelector('form').addEventListener('submit', function(event) {
+        const nome = document.getElementById('nome_solicitante').value.trim();
+        const departamento = document.getElementById('departamento').value.trim();
+        const descricao = document.getElementById('descricao').value.trim();
+        
+        if (!nome) {
+            event.preventDefault();
+            showNotification('Por favor, informe o nome do solicitante.', 'warning');
+            return;
+        }
+        
+        if (!departamento) {
+            event.preventDefault();
+            showNotification('Por favor, informe o departamento.', 'warning');
+            return;
+        }
+        
+        if (!descricao || descricao.length < 10) {
+            event.preventDefault();
+            showNotification('Por favor, forneça uma descrição mais detalhada (mínimo 10 caracteres).', 'warning');
+            return;
+        }
+    });
+    
+    // Adiciona efeito de foco nos campos
+    const inputs = document.querySelectorAll('.form-input, .form-select, .form-textarea');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'translateY(-2px)';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Função para mostrar notificações
+    function showNotification(message, type = 'info') {
+        // Criar elemento de notificação
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        
+        // Estilizar a notificação
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.padding = '15px 25px';
+        notification.style.borderRadius = '8px';
+        notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        notification.style.zIndex = '1000';
+        notification.style.maxWidth = '300px';
+        notification.style.color = 'white';
+        notification.style.fontWeight = '500';
+        
+        // Definir cor de fundo com base no tipo
+        if (type === 'success') {
+            notification.style.backgroundColor = '#27ae60';
+        } else if (type === 'warning') {
+            notification.style.backgroundColor = '#f39c12';
+        } else if (type === 'error') {
+            notification.style.backgroundColor = '#e74c3c';
+        } else {
+            notification.style.backgroundColor = '#3498db';
+        }
+        
+        // Adicionar ao corpo
+        document.body.appendChild(notification);
+        
+        // Remover após 3 segundos
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.5s ease';
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 500);
+        }, 3000);
+    }
+</script>
+{% endblock %}

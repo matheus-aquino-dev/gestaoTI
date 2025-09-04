@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+{% block title %}Detalhes da Demanda #{{ demanda.id }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Estilos específicos para a página de detalhes da demanda */
+    .page-header {
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        color: #2c3e50;
+        font-weight: 600;
+        margin: 0;
+        padding-bottom: 15px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .page-title::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(to right, #3498db, #2980b9);
+        border-radius: 3px;
+    }
+    
+    .urgency-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        color: white;
+    }
+    
+    .urgency-baixa {
+        background-color: #27ae60;
+    }
+    
+    .urgency-media {
+        background-color: #f39c12;
+    }
+    
+    .urgency-alta {
+        background-color: #e74c3c;
+    }
+    
+    .demanda-detalhes {
+        display: flex;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .info-principal {
+        flex: 2;
+        min-width: 300px;
+    }
+    
+    .acoes-historico {
+        flex: 1;
+        min-width: 300px;
+    }
+    
+    .info-card, .acoes-card, .historico-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+    
+    .info-card:hover, .acoes-card:hover, .historico-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+    }
+    
+    .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .card-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .card-icon {
+        font-size: 22px;
+    }
+    
+    .info-item {
+        margin-bottom: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .info-label {
+        font-size: 14px;
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+    
+    .info-value {
+        font-size: 16px;
+        color: #2c3e50;
+        font-weight: 500;
+    }
+    
+    .info-value.descricao {
+        line-height: 1.6;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #3498db;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 15px;
+        background-color: white;
+        transition: all 0.3s ease;
+    }
+    
+    .form-select:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+    
+    .submit-button {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .submit-button:hover {
+        background: linear-gradient(135deg, #2980b9, #1f5e95);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+    }
+    
+    .submit-button:disabled {
+        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .historico-lista {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .historico-item {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    
+    .historico-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .historico-item:last-child {
+        border-bottom: none;
+    }
+    
+    .historico-data {
+        font-weight: 600;
+        color: #3498db;
+        margin-bottom: 5px;
+        font-size: 14px;
+    }
+    
+    .historico-autor {
+        font-style: italic;
+        color: #7f8c8d;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .historico-descricao {
+        color: #2c3e50;
+        line-height: 1.5;
+    }
+    
+    .empty-historico {
+        text-align: center;
+        padding: 30px 15px;
+        color: #7f8c8d;
+        font-style: italic;
+    }
+    
+    .empty-icon {
+        font-size: 32px;
+        margin-bottom: 10px;
+        opacity: 0.7;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 500;
+        margin-top: 25px;
+        transition: all 0.3s ease;
+        padding: 8px 0;
+    }
+    
+    .back-link:hover {
+        color: #2980b9;
+    }
+    
+    .back-link::before {
+        content: "←";
+        margin-right: 10px;
+        font-weight: bold;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    
+    .status-aberto {
+        background-color: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+    }
+    
+    .status-andamento {
+        background-color: rgba(243, 156, 18, 0.1);
+        color: #f39c12;
+    }
+    
+    .status-concluido {
+        background-color: rgba(39, 174, 96, 0.1);
+        color: #27ae60;
+    }
+    
+    /* Responsividade */
+    @media (max-width: 992px) {
+        .demanda-detalhes {
+            flex-direction: column;
+        }
+        
+        .info-principal, .acoes-historico {
+            width: 100%;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .page-title {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .info-card, .acoes-card, .historico-card {
+            padding: 20px;
+        }
+    }
+    
+    /* Animações */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .info-card, .acoes-card, .historico-card {
+        animation: fadeIn 0.6s ease-out;
+    }
+    
+    .info-card { animation-delay: 0.1s; }
+    .acoes-card { animation-delay: 0.2s; }
+    .historico-card { animation-delay: 0.3s; }
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">
+        Demanda #{{ demanda.id }} - {{ demanda.nome_solicitante }}
+        <span class="urgency-badge urgency-{{ demanda.urgencia|lower }}">{{ demanda.urgencia }}</span>
+    </h1>
+</div>
+
+<div class="demanda-detalhes">
+    <div class="info-principal">
+        <div class="info-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <span class="card-icon">📋</span>
+                    Detalhes da Solicitação
+                </h3>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Solicitante</span>
+                <span class="info-value">{{ demanda.nome_solicitante }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Departamento</span>
+                <span class="info-value">{{ demanda.departamento }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Data de Criação</span>
+                <span class="info-value">{{ demanda.data_criacao }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Urgência</span>
+                <span class="info-value">{{ demanda.urgencia }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Descrição</span>
+                <div class="info-value descricao">{{ demanda.descricao }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="acoes-historico">
+        <div class="acoes-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <span class="card-icon">⚙️</span>
+                    Ações
+                </h3>
+            </div>
+            
+            <div class="status-badge status-{{ demanda.status|lower|replace(' ', '_') }}">
+                Status: {{ demanda.status }}
+            </div>
+            
+            {% if demanda.responsavel %}
+            <div class="info-item">
+                <span class="info-label">Responsável</span>
+                <span class="info-value">{{ demanda.responsavel }}</span>
+            </div>
+            {% endif %}
+            
+            {% if demanda.data_inicio %}
+            <div class="info-item">
+                <span class="info-label">Início do Atendimento</span>
+                <span class="info-value">{{ demanda.data_inicio }}</span>
+            </div>
+            {% endif %}
+            
+            {% if demanda.data_conclusao %}
+            <div class="info-item">
+                <span class="info-label">Conclusão</span>
+                <span class="info-value">{{ demanda.data_conclusao }}</span>
+            </div>
+            {% endif %}
+            
+            <form action="{{ url_for('atualizar_demanda', id=demanda.id) }}" method="POST">
+                <div class="form-group">
+                    <label class="form-label">Alterar Status:</label>
+                    <select name="status" class="form-select">
+                        {% if demanda.status == 'Aberta' %}
+                        <option value="Em Andamento">Iniciar Atendimento</option>
+                        {% endif %}
+                        {% if demanda.status == 'Em Andamento' %}
+                        <option value="Concluída">Concluir Demanda</option>
+                        {% endif %}
+                    </select>
+                </div>
+                <button type="submit" class="submit-button">
+                    <span>🔄</span> Atualizar Status
+                </button>
+            </form>
+        </div>
+        
+        <div class="historico-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <span class="card-icon">📝</span>
+                    Histórico de Alterações
+                </h3>
+            </div>
+            
+            <ul class="historico-lista">
+                {% for item in historico %}
+                <li class="historico-item">
+                    <div class="historico-data">{{ item.data.strftime('%d/%m/%Y %H:%M') }}</div>
+                    <div class="historico-autor">por {{ item.autor }}</div>
+                    <div class="historico-descricao">{{ item.alteracao }}</div>
+                </li>
+                {% else %}
+                <div class="empty-historico">
+                    <div class="empty-icon">📭</div>
+                    <p>Nenhum histórico encontrado.</p>
+                </div>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<a href="{{ url_for('listar_demandas') }}" class="back-link">Voltar para Lista de Demandas</a>
+
+<script>
+    // Adicionar efeito de foco aos campos do formulário
+    const formSelect = document.querySelector('.form-select');
+    
+    formSelect.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'translateY(-2px)';
+    });
+    
+    formSelect.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'translateY(0)';
+    });
+    
+    // Verificar se há opções disponíveis no select
+    if (formSelect.options.length === 0) {
+        formSelect.disabled = true;
+        formSelect.style.backgroundColor = '#f8f9fa';
+        formSelect.style.color = '#6c757d';
+        
+        const infoItem = document.createElement('div');
+        infoItem.className = 'info-item';
+        infoItem.innerHTML = '<span class="info-label">Observação</span><span class="info-value" style="color: #e74c3c;">Esta demanda já foi concluída ou não pode ter seu status alterado.</span>';
+        
+        formSelect.parentElement.appendChild(infoItem);
+    }
+</script>
+{% endblock %}

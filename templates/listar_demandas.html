@@ -1,283 +1,392 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Lista de Demandas</title>
-    <style>
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --accent-color: #e74c3c;
-            --light-bg: #f5f7fa;
-            --white: #ffffff;
-            --text-dark: #2c3e50;
-            --border-color: #ddd;
-            --hover-bg: #f8f9fa;
-            --success-color: #27ae60;
-            --warning-color: #f39c12;
-            --info-color: #16a085;
-        }
+{% extends "base.html" %}
+{% block title %}Lista de Demandas{% endblock %}
 
-        * {
-            box-sizing: border-box;
+{% block content %}
+<style>
+    /* Estilos específicos para a página de demandas */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .page-title {
+        font-size: 32px;
+        color: #2c3e50;
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        padding-bottom: 10px;
+    }
+    
+    .page-title::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(to right, #3498db, #2980b9);
+        border-radius: 3px;
+    }
+    
+    .add-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);
+    }
+    
+    .add-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(40, 167, 69, 0.3);
+        background: linear-gradient(135deg, #218838, #1e9a65);
+    }
+    
+    .demandas-container {
+        display: flex;
+        gap: 25px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .demanda-coluna {
+        flex: 1;
+        min-width: 300px;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .demanda-coluna:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    
+    .demanda-coluna::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+    }
+    
+    .coluna-abertas::before {
+        background: linear-gradient(to bottom, #e74c3c, #c0392b);
+    }
+    
+    .coluna-andamento::before {
+        background: linear-gradient(to bottom, #f39c12, #e67e22);
+    }
+    
+    .coluna-concluidas::before {
+        background: linear-gradient(to bottom, #27ae60, #229954);
+    }
+    
+    .coluna-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .coluna-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .coluna-icon {
+        font-size: 24px;
+    }
+    
+    .coluna-count {
+        background: #3498db;
+        color: white;
+        border-radius: 20px;
+        padding: 2px 10px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .count-abertas {
+        background: #e74c3c;
+    }
+    
+    .count-andamento {
+        background: #f39c12;
+    }
+    
+    .count-concluidas {
+        background: #27ae60;
+    }
+    
+    .demanda-card {
+        background-color: white;
+        padding: 18px;
+        margin-bottom: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+        position: relative;
+    }
+    
+    .demanda-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+    
+    .card-abertas {
+        border-left-color: #e74c3c;
+    }
+    
+    .card-andamento {
+        border-left-color: #f39c12;
+    }
+    
+    .card-concluidas {
+        border-left-color: #27ae60;
+    }
+    
+    .demanda-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+    
+    .demanda-id {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .urgency-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        color: white;
+    }
+    
+    .urgency-baixa {
+        background-color: #27ae60;
+    }
+    
+    .urgency-media {
+        background-color: #f39c12;
+    }
+    
+    .urgency-alta {
+        background-color: #e74c3c;
+    }
+    
+    .demanda-solicitante {
+        font-size: 15px;
+        font-weight: 500;
+        color: #34495e;
+        margin-bottom: 8px;
+    }
+    
+    .demanda-descricao {
+        color: #555;
+        line-height: 1.5;
+        margin-bottom: 12px;
+    }
+    
+    .demanda-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-size: 13px;
+        color: #7f8c8d;
+        margin-bottom: 15px;
+    }
+    
+    .demanda-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .demanda-link {
+        padding: 6px 12px;
+        background-color: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .demanda-link:hover {
+        background-color: #2980b9;
+        transform: translateY(-1px);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 30px 15px;
+        color: #7f8c8d;
+        font-style: italic;
+    }
+    
+    .empty-icon {
+        font-size: 32px;
+        margin-bottom: 10px;
+        opacity: 0.7;
+    }
+    
+    /* Responsividade */
+    @media (max-width: 992px) {
+        .demandas-container {
+            flex-direction: column;
         }
+        
+        .demanda-coluna {
+            margin-bottom: 20px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .demanda-header {
+            flex-direction: column;
+            gap: 8px;
+        }
+    }
+</style>
 
-        body {
-            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            padding: 20px;
-            margin: 0;
-            background-color: var(--light-bg);
-            color: var(--text-dark);
-            line-height: 1.6;
-        }
+<div class="page-header">
+    <h1 class="page-title">Acompanhamento de Demandas</h1>
+    <a href="{{ url_for('adicionar_demanda') }}" class="add-button">
+        <span>➕</span> Adicionar Nova Demanda
+    </a>
+</div>
 
-        h1 {
-            color: var(--primary-color);
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 25px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--secondary-color);
-        }
-
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            font-size: 0.9em;
-            background-color: var(--white);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            margin-bottom: 25px;
-        }
-
-        th, td {
-            border: none;
-            padding: 14px 18px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-
-        th {
-            background: linear-gradient(135deg, var(--primary-color), #1a2530);
-            color: var(--white);
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 13px;
-            letter-spacing: 0.5px;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-
-        tr:hover {
-            background-color: var(--hover-bg);
-        }
-
-        /* Classes de urgência com cores mais suaves */
-        .urgencia-baixa {
-            background-color: rgba(39, 174, 96, 0.1);
-        }
-
-        .urgencia-baixa td:nth-child(6) {
-            color: var(--success-color);
-            font-weight: 600;
-        }
-
-        .urgência-média {
-            background-color: rgba(243, 156, 18, 0.1);
-        }
-
-        .urgência-média td:nth-child(6) {
-            color: var(--warning-color);
-            font-weight: 600;
-        }
-
-        .urgência-alta {
-            background-color: rgba(231, 76, 60, 0.1);
-        }
-
-        .urgência-alta td:nth-child(6) {
-            color: var(--accent-color);
-            font-weight: 600;
-        }
-
-        /* Correção para acentuação */
-        .urgencia-média, .urgencia-alta {
-            background-color: rgba(243, 156, 18, 0.1);
-        }
-
-        .urgencia-média td:nth-child(6) {
-            color: var(--warning-color);
-            font-weight: 600;
-        }
-
-        .urgencia-alta td:nth-child(6) {
-            color: var(--accent-color);
-            font-weight: 600;
-        }
-
-        /* Status badges */
-        td:nth-child(7) {
-            font-weight: 500;
-        }
-
-        .status-pendente {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background-color: rgba(243, 156, 18, 0.1);
-            color: var(--warning-color);
-            font-size: 13px;
-        }
-
-        .status-em_andamento {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background-color: rgba(52, 152, 219, 0.1);
-            color: var(--secondary-color);
-            font-size: 13px;
-        }
-
-        .status-concluido {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background-color: rgba(39, 174, 96, 0.1);
-            color: var(--success-color);
-            font-size: 13px;
-        }
-
-        a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            display: inline-block;
-            border: 1px solid var(--primary-color);
-        }
-
-        a:hover {
-            background-color: rgba(44, 62, 80, 0.05);
-            color: var(--secondary-color);
-        }
-
-        /* Adicionando um pouco de responsividade */
-        @media (max-width: 768px) {
-            body {
-                padding: 15px;
-            }
-            
-            table {
-                display: block;
-                overflow-x: auto;
-            }
-            
-            th, td {
-                padding: 10px 12px;
-                font-size: 14px;
-            }
-            
-            h1 {
-                font-size: 24px;
-            }
-        }
-
-        /* Animações suaves */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        tr {
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        /* Ícones para status */
-        .status-icon {
-            margin-right: 5px;
-        }
-
-        /* Container para melhor organização */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* Melhorias de acessibilidade */
-        table:focus {
-            outline: 2px solid var(--secondary-color);
-            outline-offset: -2px;
-        }
-
-        /* Indicadores visuais para urgência */
-        .urgency-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .urgency-baixa .urgency-indicator {
-            background-color: var(--success-color);
-        }
-
-        .urgência-média .urgency-indicator {
-            background-color: var(--warning-color);
-        }
-
-        .urgência-alta .urgency-indicator {
-            background-color: var(--accent-color);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Lista de Demandas</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Data</th>
-                    <th>Solicitante</th>
-                    <th>Departamento</th>
-                    <th>Descrição</th>
-                    <th>Urgência</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for demanda in demandas %}
-                <tr class="urgencia-{{ demanda.urgencia|lower }}">
-                    <td>{{ demanda.id }}</td>
-                    <td>{{ demanda.data_criacao }}</td>
-                    <td>{{ demanda.nome_solicitante }}</td>
-                    <td>{{ demanda.departamento }}</td>
-                    <td>{{ demanda.descricao }}</td>
-                    <td>
-                        <span class="urgency-indicator"></span>{{ demanda.urgencia }}
-                    </td>
-                    <td>
-                        <span class="status-{{ demanda.status|lower }}">
-                            <span class="status-icon"></span>{{ demanda.status|replace('_', ' ')|capitalize }}
-                        </span>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" style="text-align: center;">Nenhuma demanda encontrada.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <a href="{{ url_for('index') }}">Voltar ao Painel</a>
+<div class="demandas-container">
+    <div class="demanda-coluna coluna-abertas">
+        <div class="coluna-header">
+            <h2 class="coluna-title">
+                <span class="coluna-icon">📋</span>
+                Abertas
+            </h2>
+            <span class="coluna-count count-abertas">{{ abertas|length }}</span>
+        </div>
+        
+        {% for demanda in abertas %}
+        <div class="demanda-card card-abertas">
+            <div class="demanda-header">
+                <span class="demanda-id">#{{ demanda.id }}</span>
+                <span class="urgency-badge urgency-{{ demanda.urgencia|lower }}">{{ demanda.urgencia }}</span>
+            </div>
+            <div class="demanda-solicitante">{{ demanda.nome_solicitante }} - {{ demanda.departamento }}</div>
+            <div class="demanda-descricao">{{ demanda.descricao }}</div>
+            <div class="demanda-meta">
+                <span>📅 Criada em: {{ demanda.data_criacao }}</span>
+            </div>
+            <div class="demanda-actions">
+                <a href="{{ url_for('detalhes_demanda', id=demanda.id) }}" class="demanda-link">Ver Detalhes</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>Nenhuma demanda aberta no momento.</p>
+        </div>
+        {% endfor %}
     </div>
-</body>
-</html>
+    
+    <div class="demanda-coluna coluna-andamento">
+        <div class="coluna-header">
+            <h2 class="coluna-title">
+                <span class="coluna-icon">⚙️</span>
+                Em Andamento
+            </h2>
+            <span class="coluna-count count-andamento">{{ andamento|length }}</span>
+        </div>
+        
+        {% for demanda in andamento %}
+        <div class="demanda-card card-andamento">
+            <div class="demanda-header">
+                <span class="demanda-id">#{{ demanda.id }}</span>
+                <span class="urgency-badge urgency-{{ demanda.urgencia|lower }}">{{ demanda.urgencia }}</span>
+            </div>
+            <div class="demanda-solicitante">{{ demanda.nome_solicitante }} - {{ demanda.departamento }}</div>
+            <div class="demanda-descricao">{{ demanda.descricao }}</div>
+            <div class="demanda-meta">
+                <span>👤 Responsável: {{ demanda.responsavel }}</span>
+                <span>📅 Iniciada em: {{ demanda.data_inicio }}</span>
+            </div>
+            <div class="demanda-actions">
+                <a href="{{ url_for('detalhes_demanda', id=demanda.id) }}" class="demanda-link">Ver Detalhes</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">⏳</div>
+            <p>Nenhuma demanda em andamento no momento.</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="demanda-coluna coluna-concluidas">
+        <div class="coluna-header">
+            <h2 class="coluna-title">
+                <span class="coluna-icon">✅</span>
+                Concluídas (Últimas 10)
+            </h2>
+            <span class="coluna-count count-concluidas">{{ concluidas|length }}</span>
+        </div>
+        
+        {% for demanda in concluidas %}
+        <div class="demanda-card card-concluidas">
+            <div class="demanda-header">
+                <span class="demanda-id">#{{ demanda.id }}</span>
+                <span class="urgency-badge urgency-{{ demanda.urgencia|lower }}">{{ demanda.urgencia }}</span>
+            </div>
+            <div class="demanda-solicitante">{{ demanda.nome_solicitante }} - {{ demanda.departamento }}</div>
+            <div class="demanda-descricao">{{ demanda.descricao }}</div>
+            <div class="demanda-meta">
+                <span>👤 Concluída por: {{ demanda.responsavel }}</span>
+                <span>📅 Concluída em: {{ demanda.data_conclusao }}</span>
+            </div>
+            <div class="demanda-actions">
+                <a href="{{ url_for('detalhes_demanda', id=demanda.id) }}" class="demanda-link">Ver Detalhes</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>Nenhuma demanda concluída recentemente.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

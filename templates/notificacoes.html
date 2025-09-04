@@ -1,0 +1,622 @@
+{% extends "base.html" %}
+{% block title %}Histórico de Notificações{% endblock %}
+
+{% block content %}
+<style>
+    /* Estilos específicos para a página de notificações */
+    .notifications-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .notifications-title {
+        font-size: 28px;
+        color: #2c3e50;
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        padding-bottom: 10px;
+    }
+    
+    .notifications-title::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(to right, #3498db, #2980b9);
+        border-radius: 3px;
+    }
+    
+    .filters-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .filter-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #2c3e50;
+    }
+    
+    .filter-input {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 25px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    
+    .filter-input:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+    
+    .filter-select {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        transition: all 0.3s ease;
+    }
+    
+    .filter-select:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .action-btn {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .btn-mark-read {
+        background: #2ecc71;
+        color: white;
+    }
+    
+    .btn-mark-read:hover {
+        background: #27ae60;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+    }
+    
+    .btn-clear {
+        background: #e74c3c;
+        color: white;
+    }
+    
+    .btn-clear:hover {
+        background: #c0392b;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+    }
+    
+    .notifications-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .notification-item {
+        background: white;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .notification-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    
+    .notification-item.unread {
+        border-left: 5px solid #3498db;
+    }
+    
+    .notification-item.read {
+        border-left: 5px solid #ecf0f1;
+        opacity: 0.9;
+    }
+    
+    .notification-icon {
+        flex-shrink: 0;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        background: rgba(52, 152, 219, 0.1);
+        color: #3498db;
+    }
+    
+    .notification-icon.success {
+        background: rgba(46, 204, 113, 0.1);
+        color: #2ecc71;
+    }
+    
+    .notification-icon.warning {
+        background: rgba(243, 156, 18, 0.1);
+        color: #f39c12;
+    }
+    
+    .notification-icon.danger {
+        background: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+    }
+    
+    .notification-content {
+        flex: 1;
+    }
+    
+    .notification-date {
+        font-size: 14px;
+        color: #7f8c8d;
+        margin-bottom: 5px;
+        font-weight: 500;
+    }
+    
+    .notification-message {
+        margin: 0 0 10px 0;
+        color: #2c3e50;
+        line-height: 1.5;
+    }
+    
+    .notification-link {
+        display: inline-block;
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .notification-link:hover {
+        color: #2980b9;
+        text-decoration: underline;
+    }
+    
+    .notification-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .notification-btn {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-mark-as-read {
+        background: #3498db;
+        color: white;
+    }
+    
+    .btn-mark-as-read:hover {
+        background: #2980b9;
+    }
+    
+    .btn-delete {
+        background: #e74c3c;
+        color: white;
+    }
+    
+    .btn-delete:hover {
+        background: #c0392b;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    
+    .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+    
+    .empty-state-text {
+        font-size: 20px;
+        color: #7f8c8d;
+        margin-bottom: 30px;
+    }
+    
+    .empty-state-action {
+        display: inline-block;
+        padding: 12px 25px;
+        background: #3498db;
+        color: white;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .empty-state-action:hover {
+        background: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .notifications-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .filters-container {
+            flex-direction: column;
+        }
+        
+        .filter-group {
+            width: 100%;
+        }
+        
+        .action-buttons {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .notification-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .notification-icon {
+            align-self: center;
+        }
+    }
+</style>
+
+<div class="notifications-header">
+    <h1 class="notifications-title">Histórico de Notificações</h1>
+</div>
+
+<!-- Filtros e ações -->
+<div class="filters-container">
+    <div class="filter-group">
+        <label class="filter-label">Pesquisar</label>
+        <input type="text" class="filter-input" id="search-input" placeholder="Buscar notificações...">
+    </div>
+    
+    <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <select class="filter-select" id="status-filter">
+            <option value="">Todas</option>
+            <option value="unread">Não lidas</option>
+            <option value="read">Lidas</option>
+        </select>
+    </div>
+    
+    <div class="filter-group">
+        <label class="filter-label">Tipo</label>
+        <select class="filter-select" id="type-filter">
+            <option value="">Todos</option>
+            <option value="info">Informação</option>
+            <option value="success">Sucesso</option>
+            <option value="warning">Aviso</option>
+            <option value="danger">Erro</option>
+        </select>
+    </div>
+    
+    <div class="action-buttons">
+        <button class="action-btn btn-mark-read" onclick="markAllAsRead()">
+            <span>✓</span> Marcar todas como lidas
+        </button>
+        <button class="action-btn btn-clear" onclick="clearNotifications()">
+            <span>🗑️</span> Limpar notificações
+        </button>
+    </div>
+</div>
+
+<!-- Lista de notificações -->
+<ul class="notifications-list" id="notifications-list">
+    {% for notif in notificacoes %}
+    <li class="notification-item {% if notif.lida %}read{% else %}unread{% endif %}" data-id="{{ notif.id }}">
+        <div class="notification-icon {% if notif.tipo %}{{ notif.tipo }}{% else %}info{% endif %}">
+            {% if notif.tipo == 'success' %}✓{% elif notif.tipo == 'warning' %}⚠️{% elif notif.tipo == 'danger' %}✗{% else %}ℹ️{% endif %}
+        </div>
+        <div class="notification-content">
+            <div class="notification-date">{{ notif.data_criacao.strftime('%d/%m/%Y %H:%M') }}</div>
+            <p class="notification-message">
+                {% if notif.link %}
+                    <a href="{{ notif.link }}" class="notification-link">{{ notif.mensagem }}</a>
+                {% else %}
+                    {{ notif.mensagem }}
+                {% endif %}
+            </p>
+            <div class="notification-actions">
+                {% if not notif.lida %}
+                <button class="notification-btn btn-mark-as-read" onclick="markAsRead('{{ notif.id }}')">Marcar como lida</button>
+                {% endif %}
+                <button class="notification-btn btn-delete" onclick="deleteNotification('{{ notif.id }}')">Excluir</button>
+            </div>
+        </div>
+    </li>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">🔔</div>
+        <div class="empty-state-text">Nenhuma notificação encontrada</div>
+        <a href="{{ url_for('index') }}" class="empty-state-action">Voltar ao Painel</a>
+    </div>
+    {% endfor %}
+</ul>
+
+<script>
+    // Função segura para atualizar o contador de notificações
+    function updateNotificationCount() {
+        // Verifica se o elemento existe antes de tentar acessá-lo
+        const notifCountElement = document.getElementById('notif-count');
+        if (notifCountElement) {
+            fetch("{{ url_for('notificacoes_json') }}")
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Erro na requisição');
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data && Array.isArray(data)) {
+                        if (data.length > 0) {
+                            notifCountElement.textContent = data.length;
+                            notifCountElement.style.display = 'block';
+                        } else {
+                            notifCountElement.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Erro ao atualizar contador de notificações:', error);
+                });
+        }
+    }
+    
+    // Funcionalidade de pesquisa
+    document.getElementById('search-input').addEventListener('keyup', function() {
+        const searchValue = this.value.toLowerCase();
+        const notifications = document.querySelectorAll('.notification-item');
+        
+        notifications.forEach(function(notification) {
+            const message = notification.querySelector('.notification-message');
+            if (message) {
+                const messageText = message.textContent.toLowerCase();
+                if (messageText.includes(searchValue)) {
+                    notification.style.display = 'flex';
+                } else {
+                    notification.style.display = 'none';
+                }
+            }
+        });
+    });
+    
+    // Funcionalidade de filtro por status
+    document.getElementById('status-filter').addEventListener('change', function() {
+        const statusValue = this.value;
+        const notifications = document.querySelectorAll('.notification-item');
+        
+        notifications.forEach(function(notification) {
+            if (statusValue === '' || notification.classList.contains(statusValue)) {
+                notification.style.display = 'flex';
+            } else {
+                notification.style.display = 'none';
+            }
+        });
+    });
+    
+    // Funcionalidade de filtro por tipo
+    document.getElementById('type-filter').addEventListener('change', function() {
+        const typeValue = this.value;
+        const notifications = document.querySelectorAll('.notification-item');
+        
+        notifications.forEach(function(notification) {
+            const icon = notification.querySelector('.notification-icon');
+            if (icon) {
+                if (typeValue === '' || icon.classList.contains(typeValue)) {
+                    notification.style.display = 'flex';
+                } else {
+                    notification.style.display = 'none';
+                }
+            }
+        });
+    });
+    
+    // Marcar notificação como lida
+    function markAsRead(id) {
+        fetch('/notificacoes/marcar_lida/' + id, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Erro na requisição');
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            if (data && data.success) {
+                const notification = document.querySelector('.notification-item[data-id="' + id + '"]');
+                if (notification) {
+                    notification.classList.remove('unread');
+                    notification.classList.add('read');
+                    
+                    const button = notification.querySelector('.btn-mark-as-read');
+                    if (button) {
+                        button.style.display = 'none';
+                    }
+                    
+                    // Atualiza o contador de notificações no header
+                    updateNotificationCount();
+                }
+            }
+        })
+        .catch(function(error) {
+            console.error('Erro ao marcar notificação como lida:', error);
+            alert('Erro ao marcar notificação como lida. Tente novamente.');
+        });
+    }
+    
+    // Excluir notificação
+    function deleteNotification(id) {
+        if (confirm('Tem certeza que deseja excluir esta notificação?')) {
+            fetch('/notificacoes/excluir/' + id, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Erro na requisição');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.success) {
+                    const notification = document.querySelector('.notification-item[data-id="' + id + '"]');
+                    if (notification) {
+                        notification.style.opacity = '0';
+                        notification.style.transform = 'translateX(-20px)';
+                        
+                        setTimeout(function() {
+                            notification.remove();
+                            
+                            // Verifica se não há mais notificações
+                            const notifications = document.querySelectorAll('.notification-item');
+                            if (notifications.length === 0) {
+                                location.reload(); // Recarrega a página para mostrar o estado vazio
+                            }
+                            
+                            // Atualiza o contador de notificações no header
+                            updateNotificationCount();
+                        }, 300);
+                    }
+                }
+            })
+            .catch(function(error) {
+                console.error('Erro ao excluir notificação:', error);
+                alert('Erro ao excluir notificação. Tente novamente.');
+            });
+        }
+    }
+    
+    // Marcar todas as notificações como lidas
+    function markAllAsRead() {
+        fetch('/notificacoes/marcar_todas_lidas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Erro na requisição');
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            if (data && data.success) {
+                const notifications = document.querySelectorAll('.notification-item.unread');
+                notifications.forEach(function(notification) {
+                    notification.classList.remove('unread');
+                    notification.classList.add('read');
+                    
+                    const button = notification.querySelector('.btn-mark-as-read');
+                    if (button) {
+                        button.style.display = 'none';
+                    }
+                });
+                
+                // Atualiza o contador de notificações no header
+                updateNotificationCount();
+            }
+        })
+        .catch(function(error) {
+            console.error('Erro ao marcar todas as notificações como lidas:', error);
+            alert('Erro ao marcar todas as notificações como lidas. Tente novamente.');
+        });
+    }
+    
+    // Limpar todas as notificações
+    function clearNotifications() {
+        if (confirm('Tem certeza que deseja excluir todas as notificações? Esta ação não pode ser desfeita.')) {
+            fetch('/notificacoes/limpar_todas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Erro na requisição');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.success) {
+                    location.reload(); // Recarrega a página para mostrar o estado vazio
+                }
+            })
+            .catch(function(error) {
+                console.error('Erro ao limpar notificações:', error);
+                alert('Erro ao limpar notificações. Tente novamente.');
+            });
+        }
+    }
+</script>
+{% endblock %}

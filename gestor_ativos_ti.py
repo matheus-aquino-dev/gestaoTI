@@ -3,7 +3,7 @@ import csv
 import json
 import io
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
@@ -53,10 +53,17 @@ def criar_banco():
                  id INTEGER PRIMARY KEY, numero TEXT NOT NULL UNIQUE, funcionario_nome TEXT, 
                  centro_custo_id INTEGER, funcao TEXT, valor REAL, vencimento_fatura INTEGER, status TEXT DEFAULT 'Ativo',
                  FOREIGN KEY (centro_custo_id) REFERENCES centros_custo(id))''')
-    # NOVA TABELA DE DEMANDAS
     c.execute('''CREATE TABLE IF NOT EXISTS demandas (
                  id INTEGER PRIMARY KEY, nome_solicitante TEXT NOT NULL, departamento TEXT,
-                 descricao TEXT NOT NULL, urgencia TEXT, data_criacao DATE, status TEXT DEFAULT 'Aberta')''')
+                 descricao TEXT NOT NULL, urgencia TEXT, data_criacao DATE, status TEXT DEFAULT 'Aberta',
+                 responsavel TEXT, data_conclusao DATE)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS demandas_historico (
+                 id INTEGER PRIMARY KEY, demanda_id INTEGER, alteracao TEXT NOT NULL, 
+                 autor TEXT, data DATETIME,
+                 FOREIGN KEY (demanda_id) REFERENCES demandas(id))''')
+    c.execute('''CREATE TABLE IF NOT EXISTS notificacoes (
+                 id INTEGER PRIMARY KEY, mensagem TEXT NOT NULL, link TEXT, 
+                 data_criacao DATETIME, lida BOOLEAN DEFAULT 0)''')
     conn.commit()
     conn.close()
 
@@ -71,6 +78,16 @@ def db_query(query, params=(), fetchone=False, commit=False):
         conn.commit()
     conn.close()
     return result
+
+# --- FUNÇÃO PARA CRIAR NOTIFICAÇÕES ---
+def criar_notificacao(mensagem, link=None):
+    db_query("INSERT INTO notificacoes (mensagem, link, data_criacao) VALUES (?, ?, ?)",
+             (mensagem, link, datetime.now()), commit=True)
+
+# --- FUNÇÃO PARA REGISTAR HISTÓRICO DE DEMANDA ---
+def registar_historico_demanda(demanda_id, alteracao, autor):
+    db_query("INSERT INTO demandas_historico (demanda_id, alteracao, autor, data) VALUES (?, ?, ?, ?)",
+             (demanda_id, alteracao, autor, datetime.now()), commit=True)
 
 # --- Rotas de Autenticação ---
 @app.route('/login', methods=['GET', 'POST'])
@@ -117,33 +134,81 @@ def index():
     """
     return render_template('index.html', ativos=db_query(query))
 
-# --- NOVAS ROTAS DE DEMANDAS ---
+# --- ROTAS DE DEMANDAS ---
 @app.route('/nova_demanda')
 def nova_demanda():
     return render_template('nova_demanda.html')
 
 @app.route('/enviar_demanda', methods=['POST'])
 def enviar_demanda():
-    dados = {
-        'nome_solicitante': request.form['nome'],
-        'departamento': request.form['departamento'],
-        'descricao': request.form['descricao'],
-        'urgencia': request.form['urgencia'],
-        'data_criacao': datetime.now().date(),
-        'status': 'Aberta'
-    }
+    dados = { 'nome_solicitante': request.form['nome'], 'departamento': request.form['departamento'], 'descricao': request.form['descricao'], 'urgencia': request.form['urgencia'], 'data_criacao': datetime.now().date(), 'status': 'Aberta' }
     colunas = ', '.join(dados.keys())
     placeholders = ', '.join(['?'] * len(dados))
     db_query(f"INSERT INTO demandas ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
+    demanda_id = db_query("SELECT last_insert_rowid() as id", fetchone=True)['id']
+    registar_historico_demanda(demanda_id, "Demanda criada.", dados['nome_solicitante'])
+    criar_notificacao(f"Nova demanda de {dados['nome_solicitante']} (Urgência: {dados['urgencia']})", url_for('detalhes_demanda', id=demanda_id))
     flash('Demanda enviada com sucesso!', 'success')
     return redirect(url_for('nova_demanda'))
 
 @app.route('/demandas')
 @login_required
 def listar_demandas():
-    demandas = db_query("SELECT * FROM demandas ORDER BY data_criacao DESC")
-    return render_template('listar_demandas.html', demandas=demandas)
+    demandas_abertas = db_query("SELECT * FROM demandas WHERE status = 'Aberta' ORDER BY data_criacao DESC")
+    demandas_andamento = db_query("SELECT * FROM demandas WHERE status = 'Em Andamento' ORDER BY data_criacao DESC")
+    demandas_concluidas = db_query("SELECT * FROM demandas WHERE status = 'Concluída' ORDER BY data_conclusao DESC LIMIT 10")
+    return render_template('listar_demandas.html', abertas=demandas_abertas, andamento=demandas_andamento, concluidas=demandas_concluidas)
 
+@app.route('/demandas/adicionar', methods=['GET', 'POST'])
+@login_required
+def adicionar_demanda():
+    if request.method == 'POST':
+        dados = { 'nome_solicitante': request.form['nome_solicitante'], 'departamento': request.form['departamento'], 'descricao': request.form['descricao'], 'urgencia': request.form['urgencia'], 'data_criacao': datetime.now().date(), 'status': 'Aberta' }
+        colunas = ', '.join(dados.keys())
+        placeholders = ', '.join(['?'] * len(dados))
+        db_query(f"INSERT INTO demandas ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
+        demanda_id = db_query("SELECT last_insert_rowid() as id", fetchone=True)['id']
+        registar_historico_demanda(demanda_id, "Demanda criada pela equipa de TI.", current_user.nome)
+        criar_notificacao(f"Nova demanda interna criada por {current_user.nome}", url_for('detalhes_demanda', id=demanda_id))
+        flash('Demanda adicionada com sucesso!', 'success')
+        return redirect(url_for('listar_demandas'))
+    return render_template('adicionar_demanda.html')
+
+@app.route('/demandas/<int:id>')
+@login_required
+def detalhes_demanda(id):
+    demanda = db_query("SELECT * FROM demandas WHERE id = ?", (id,), fetchone=True)
+    historico = db_query("SELECT * FROM demandas_historico WHERE demanda_id = ? ORDER BY data ASC", (id,))
+    return render_template('detalhes_demanda.html', demanda=demanda, historico=historico)
+
+@app.route('/demandas/<int:id>/atualizar', methods=['POST'])
+@login_required
+def atualizar_demanda(id):
+    novo_status = request.form['status']
+    demanda = db_query("SELECT * FROM demandas WHERE id = ?", (id,), fetchone=True)
+    if novo_status == 'Em Andamento':
+        db_query("UPDATE demandas SET status = ?, responsavel = ? WHERE id = ?", (novo_status, current_user.nome, id), commit=True)
+        registar_historico_demanda(id, f"Status alterado para 'Em Andamento'. {current_user.nome} assumiu a responsabilidade.", current_user.nome)
+    elif novo_status == 'Concluída':
+        db_query("UPDATE demandas SET status = ?, data_conclusao = ? WHERE id = ?", (novo_status, datetime.now().date(), id), commit=True)
+        registar_historico_demanda(id, "Status alterado para 'Concluída'.", current_user.nome)
+        criar_notificacao(f"Demanda #{id} para {demanda['nome_solicitante']} foi concluída.", url_for('detalhes_demanda', id=id))
+    flash('Status da demanda atualizado.', 'success')
+    return redirect(url_for('detalhes_demanda', id=id))
+
+# --- ROTAS DE NOTIFICAÇÕES ---
+@app.route('/notificacoes/json')
+@login_required
+def notificacoes_json():
+    notificacoes = db_query("SELECT * FROM notificacoes WHERE lida = 0 ORDER BY data_criacao DESC")
+    return jsonify([dict(ix) for ix in notificacoes])
+
+@app.route('/notificacoes')
+@login_required
+def listar_notificacoes():
+    db_query("UPDATE notificacoes SET lida = 1", commit=True)
+    return render_template('notificacoes.html', notificacoes=db_query("SELECT * FROM notificacoes ORDER BY data_criacao DESC"))
+    
 # --- Rota de Download do CSV Modelo ---
 @app.route('/download/modelo_csv')
 @login_required
@@ -155,7 +220,6 @@ def download_modelo_csv():
     example_row = ['Notebook Exemplo', 'Inspiron 15', 'Notebooks', 'TI São Paulo', '4500,50', '2025-01-15', 'PAT-00123', 'BRJ123XYZ', 'Notebook i5 com 8GB de RAM', '', '', '']
     writer.writerow(example_row)
     output.seek(0)
-    
     return send_file(io.BytesIO(output.getvalue().encode('utf-8-sig')), mimetype='text/csv', as_attachment=True, download_name='modelo_importacao.csv')
 
 # --- Rotas de Importação ---
@@ -216,6 +280,7 @@ def confirmar_importacao():
             colunas = ', '.join(ativo_dados_limpo.keys())
             placeholders = ', '.join(['?'] * len(ativo_dados_limpo))
             db_query(f"INSERT INTO ativos ({colunas}) VALUES ({placeholders})", list(ativo_dados_limpo.values()), commit=True)
+        criar_notificacao(f"{len(data_to_import)} ativos foram importados com sucesso.", url_for('index'))
         flash('Ativos importados com sucesso!', 'success')
     except Exception as e:
         flash(f'Ocorreu um erro na importação final: {e}', 'danger')
@@ -231,6 +296,7 @@ def adicionar_ativo():
         colunas = ', '.join(dados.keys())
         placeholders = ', '.join(['?'] * len(dados))
         db_query(f"INSERT INTO ativos ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
+        criar_notificacao(f"Novo ativo adicionado: {dados['nome']}", url_for('index'))
         return redirect(url_for('index'))
     return render_template('adicionar_ativo.html', categorias=db_query("SELECT * FROM categorias ORDER BY nome"), centros_custo=db_query("SELECT * FROM centros_custo ORDER BY nome"))
 
@@ -241,21 +307,17 @@ def editar_ativo(id):
         dados = request.form.to_dict()
         set_clause = ', '.join([f"{key} = ?" for key in dados.keys()])
         db_query(f"UPDATE ativos SET {set_clause} WHERE id = ?", list(dados.values()) + [id], commit=True)
+        criar_notificacao(f"Ativo '{dados['nome']}' foi atualizado.", url_for('detalhes_ativo', id=id))
         return redirect(url_for('index'))
     return render_template('editar_ativo.html', ativo=db_query("SELECT * FROM ativos WHERE id = ?", (id,), fetchone=True), categorias=db_query("SELECT * FROM categorias ORDER BY nome"), centros_custo=db_query("SELECT * FROM centros_custo ORDER BY nome"))
 
 @app.route('/ativo/<int:id>/excluir')
 @login_required
 def excluir_ativo(id):
+    ativo = db_query("SELECT nome FROM ativos WHERE id = ?", (id,), fetchone=True)
     db_query("DELETE FROM ativos WHERE id = ?", (id,), commit=True)
+    criar_notificacao(f"Ativo '{ativo['nome']}' foi excluído.")
     return redirect(url_for('index'))
-
-@app.route('/ativo/<int:id>/detalhes')
-@login_required
-def detalhes_ativo(id):
-    ativo_query = "SELECT a.*, cat.nome as categoria, cc.nome as centro_custo FROM ativos a LEFT JOIN categorias cat ON a.categoria_id = cat.id LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id WHERE a.id = ?"
-    historico_query = "SELECT * FROM historico_alocacoes WHERE ativo_id = ? ORDER BY data_alocacao DESC"
-    return render_template('detalhes_ativo.html', ativo=db_query(ativo_query, (id,), fetchone=True), historico=db_query(historico_query, (id,)))
 
 # --- Rotas de Alocação ---
 @app.route('/alocar', methods=['GET', 'POST'])
@@ -268,6 +330,8 @@ def alocar_ativo():
         db_query("INSERT INTO alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", (ativo_id, funcionario_nome, data), commit=True)
         db_query("INSERT INTO historico_alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", (ativo_id, funcionario_nome, data), commit=True)
         db_query("UPDATE ativos SET status = 'Alocado' WHERE id = ?", (ativo_id,), commit=True)
+        ativo = db_query("SELECT nome FROM ativos WHERE id = ?", (ativo_id,), fetchone=True)
+        criar_notificacao(f"Ativo '{ativo['nome']}' alocado para {funcionario_nome}.", url_for('detalhes_ativo', id=ativo_id))
         return redirect(url_for('index'))
     return render_template('alocar_ativo.html', ativos=db_query("SELECT * FROM ativos WHERE status = 'Disponivel'"))
 
@@ -276,13 +340,47 @@ def alocar_ativo():
 def devolver_ativo():
     if request.method == 'POST':
         alocacao_id = request.form['alocacao_id']
-        alocacao = db_query("SELECT ativo_id FROM alocacoes WHERE id = ?", (alocacao_id,), fetchone=True)
+        alocacao = db_query("SELECT ativo_id, funcionario_nome FROM alocacoes WHERE id = ?", (alocacao_id,), fetchone=True)
+        ativo = db_query("SELECT nome FROM ativos WHERE id = ?", (alocacao['ativo_id'],), fetchone=True)
         db_query("UPDATE ativos SET status = 'Disponivel' WHERE id = ?", (alocacao['ativo_id'],), commit=True)
         db_query("UPDATE historico_alocacoes SET data_devolucao = ? WHERE ativo_id = ? AND data_devolucao IS NULL", (datetime.now().date(), alocacao['ativo_id']), commit=True)
         db_query("DELETE FROM alocacoes WHERE id = ?", (alocacao_id,), commit=True)
+        criar_notificacao(f"Ativo '{ativo['nome']}' foi devolvido por {alocacao['funcionario_nome']}.", url_for('detalhes_ativo', id=alocacao['ativo_id']))
         return redirect(url_for('index'))
     alocacoes_query = "SELECT al.id, a.nome as ativo, al.funcionario_nome FROM alocacoes al JOIN ativos a ON al.ativo_id = a.id"
     return render_template('devolver_ativo.html', alocacoes=db_query(alocacoes_query))
+
+# --- Rotas de Gestão de Chips ---
+@app.route('/chips')
+@login_required
+def listar_chips():
+    query = "SELECT c.id, c.numero, c.funcionario_nome, cc.nome as centro_custo, c.funcao, c.valor, c.vencimento_fatura, c.status FROM chips c LEFT JOIN centros_custo cc ON c.centro_custo_id = cc.id ORDER BY c.numero"
+    return render_template('listar_chips.html', chips=db_query(query))
+
+@app.route('/chips/adicionar', methods=['GET', 'POST'])
+@login_required
+def adicionar_chip():
+    if request.method == 'POST':
+        dados = {k: v for k, v in request.form.to_dict().items() if v}
+        colunas = ', '.join(dados.keys())
+        placeholders = ', '.join(['?'] * len(dados))
+        db_query(f"INSERT INTO chips ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
+        criar_notificacao(f"Novo chip adicionado: {dados['numero']}", url_for('listar_chips'))
+        flash('Chip adicionado com sucesso!', 'success')
+        return redirect(url_for('listar_chips'))
+    return render_template('adicionar_editar_chip.html', titulo="Adicionar Chip", centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
+
+@app.route('/chips/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def editar_chip(id):
+    if request.method == 'POST':
+        dados = request.form.to_dict()
+        set_clause = ', '.join([f"{key} = ?" for key in dados.keys()])
+        db_query(f"UPDATE chips SET {set_clause} WHERE id = ?", list(dados.values()) + [id], commit=True)
+        criar_notificacao(f"Chip {dados['numero']} foi atualizado.", url_for('listar_chips'))
+        flash('Chip atualizado com sucesso!', 'success')
+        return redirect(url_for('listar_chips'))
+    return render_template('adicionar_editar_chip.html', titulo="Editar Chip", chip=db_query("SELECT * FROM chips WHERE id = ?", (id,), fetchone=True), centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
 
 # --- Rotas de Gerenciamento ---
 # CENTROS DE CUSTO
@@ -295,7 +393,9 @@ def listar_centros_custo():
 @login_required
 def adicionar_centros_custo():
     if request.method == 'POST':
-        db_query("INSERT INTO centros_custo (nome) VALUES (?)", (request.form['nome'],), commit=True)
+        nome = request.form['nome']
+        db_query("INSERT INTO centros_custo (nome) VALUES (?)", (nome,), commit=True)
+        criar_notificacao(f"Novo centro de custo criado: {nome}", url_for('listar_centros_custo'))
         return redirect(url_for('listar_centros_custo'))
     return render_template('adicionar_editar_generico.html', titulo="Adicionar Centro de Custo", endpoint_prefix="centros_custo")
 
@@ -303,14 +403,18 @@ def adicionar_centros_custo():
 @login_required
 def editar_centros_custo(id):
     if request.method == 'POST':
-        db_query("UPDATE centros_custo SET nome = ? WHERE id = ?", (request.form['nome'], id), commit=True)
+        nome = request.form['nome']
+        db_query("UPDATE centros_custo SET nome = ? WHERE id = ?", (nome, id), commit=True)
+        criar_notificacao(f"Centro de custo atualizado para: {nome}", url_for('listar_centros_custo'))
         return redirect(url_for('listar_centros_custo'))
     return render_template('adicionar_editar_generico.html', item=db_query("SELECT * FROM centros_custo WHERE id = ?", (id,), fetchone=True), titulo="Editar Centro de Custo", endpoint_prefix="centros_custo")
 
 @app.route('/centros_custo/<int:id>/excluir')
 @login_required
 def excluir_centros_custo(id):
+    item = db_query("SELECT nome FROM centros_custo WHERE id = ?", (id,), fetchone=True)
     db_query("DELETE FROM centros_custo WHERE id = ?", (id,), commit=True)
+    criar_notificacao(f"Centro de custo '{item['nome']}' foi excluído.")
     return redirect(url_for('listar_centros_custo'))
 
 # CATEGORIAS
@@ -323,7 +427,9 @@ def listar_categorias():
 @login_required
 def adicionar_categoria():
     if request.method == 'POST':
-        db_query("INSERT INTO categorias (nome) VALUES (?)", (request.form['nome'],), commit=True)
+        nome = request.form['nome']
+        db_query("INSERT INTO categorias (nome) VALUES (?)", (nome,), commit=True)
+        criar_notificacao(f"Nova categoria criada: {nome}", url_for('listar_categorias'))
         return redirect(url_for('listar_categorias'))
     return render_template('adicionar_editar_generico.html', titulo="Adicionar Categoria", endpoint_prefix="categorias")
 
@@ -331,14 +437,18 @@ def adicionar_categoria():
 @login_required
 def editar_categoria(id):
     if request.method == 'POST':
-        db_query("UPDATE categorias SET nome = ? WHERE id = ?", (request.form['nome'], id), commit=True)
+        nome = request.form['nome']
+        db_query("UPDATE categorias SET nome = ? WHERE id = ?", (nome, id), commit=True)
+        criar_notificacao(f"Categoria atualizada para: {nome}", url_for('listar_categorias'))
         return redirect(url_for('listar_categorias'))
     return render_template('adicionar_editar_generico.html', item=db_query("SELECT * FROM categorias WHERE id = ?", (id,), fetchone=True), titulo="Editar Categoria", endpoint_prefix="categorias")
 
 @app.route('/categorias/<int:id>/excluir')
 @login_required
 def excluir_categoria(id):
+    item = db_query("SELECT nome FROM categorias WHERE id = ?", (id,), fetchone=True)
     db_query("DELETE FROM categorias WHERE id = ?", (id,), commit=True)
+    criar_notificacao(f"Categoria '{item['nome']}' foi excluída.")
     return redirect(url_for('listar_categorias'))
 
 # USUÁRIOS
@@ -374,45 +484,6 @@ def editar_usuario(id):
 def excluir_usuario(id):
     db_query("DELETE FROM usuarios WHERE id = ?", (id,), commit=True)
     return redirect(url_for('listar_usuarios'))
-
-# CHIPS
-@app.route('/chips')
-@login_required
-def listar_chips():
-    query = """
-        SELECT c.id, c.numero, c.funcionario_nome, cc.nome as centro_custo, c.funcao, c.valor, c.vencimento_fatura, c.status
-        FROM chips c
-        LEFT JOIN centros_custo cc ON c.centro_custo_id = cc.id
-        ORDER BY c.numero
-    """
-    return render_template('listar_chips.html', chips=db_query(query))
-
-@app.route('/chips/adicionar', methods=['GET', 'POST'])
-@login_required
-def adicionar_chip():
-    if request.method == 'POST':
-        dados = {k: v for k, v in request.form.to_dict().items() if v}
-        colunas = ', '.join(dados.keys())
-        placeholders = ', '.join(['?'] * len(dados))
-        db_query(f"INSERT INTO chips ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
-        flash('Chip adicionado com sucesso!', 'success')
-        return redirect(url_for('listar_chips'))
-    return render_template('adicionar_editar_chip.html', titulo="Adicionar Chip", 
-                           centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
-
-@app.route('/chips/<int:id>/editar', methods=['GET', 'POST'])
-@login_required
-def editar_chip(id):
-    if request.method == 'POST':
-        dados = request.form.to_dict()
-        set_clause = ', '.join([f"{key} = ?" for key in dados.keys()])
-        db_query(f"UPDATE chips SET {set_clause} WHERE id = ?", list(dados.values()) + [id], commit=True)
-        flash('Chip atualizado com sucesso!', 'success')
-        return redirect(url_for('listar_chips'))
-    return render_template('adicionar_editar_chip.html', 
-                           titulo="Editar Chip",
-                           chip=db_query("SELECT * FROM chips WHERE id = ?", (id,), fetchone=True),
-                           centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
 
 if __name__ == '__main__':
     criar_banco()

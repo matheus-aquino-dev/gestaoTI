@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Gestor de Ativos TI{% endblock %}</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f5f7fa;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --border-color: #ddd;
+            --hover-bg: #f8f9fa;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --nav-bg: #34495e;
+            --nav-hover: #46627f;
+            --header-bg: #2c3e50;
+            --notification-bg: #fff;
+            --notification-border: #ddd;
+            --shadow: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-light: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, var(--header-bg), #1a2530);
+            color: white;
+            padding: 15px 25px;
+            box-shadow: var(--shadow);
+            position: relative;
+            z-index: 100;
+        }
+        .header-bar h1 {
+            margin: 0;
+            font-size: 1.7em;
+            font-weight: 600;
+        }
+        .header-bar h1 a {
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .header-bar h1 a:hover {
+            opacity: 0.9;
+        }
+        .header-bar > div {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-bar span {
+            font-size: 1em;
+            font-weight: 500;
+        }
+        .header-bar a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .header-bar a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        .nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: linear-gradient(135deg, var(--nav-bg), #2c3e50);
+            padding: 15px 25px;
+            box-shadow: var(--shadow-light);
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            position: relative;
+        }
+        .nav a:hover {
+            background-color: var(--nav-hover);
+            transform: translateY(-2px);
+        }
+        .nav a::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: var(--secondary-color);
+            transition: width 0.3s ease;
+        }
+        .nav a:hover::after {
+            width: 100%;
+        }
+        .content {
+            padding: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: var(--white);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+            margin-bottom: 25px;
+        }
+        th, td {
+            border: none;
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-color), #1a2530);
+            color: var(--white);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tr:hover {
+            background-color: var(--hover-bg);
+        }
+        .alert {
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            font-weight: 500;
+            animation: slideDown 0.5s ease-out;
+            box-shadow: var(--shadow-light);
+        }
+        .alert-success {
+            background-color: rgba(39, 174, 96, 0.1);
+            color: var(--success-color);
+            border-left: 4px solid var(--success-color);
+        }
+        .alert-danger {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: var(--accent-color);
+            border-left: 4px solid var(--accent-color);
+        }
+        .notifications {
+            position: relative;
+        }
+        .notification-bell {
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .notification-bell:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        .notification-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7em;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            min-width: 20px;
+            text-align: center;
+        }
+        .notification-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 45px;
+            background: var(--notification-bg);
+            border: 1px solid var(--notification-border);
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            transition: all 0.2s ease;
+        }
+        .notification-item:hover {
+            background-color: var(--hover-bg);
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .notification-item a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+        }
+        .notification-footer {
+            text-align: center;
+            padding: 12px;
+            font-weight: 600;
+            background-color: var(--hover-bg);
+            border-radius: 0 0 10px 10px;
+        }
+        .notification-footer a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .notification-footer a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes bellRing {
+            0% { transform: rotate(0); }
+            10% { transform: rotate(15deg); }
+            20% { transform: rotate(-15deg); }
+            30% { transform: rotate(15deg); }
+            40% { transform: rotate(-15deg); }
+            50% { transform: rotate(0); }
+            100% { transform: rotate(0); }
+        }
+        .notification-bell.ring {
+            animation: bellRing 0.5s ease;
+        }
+        @media (max-width: 768px) {
+            .header-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                padding: 15px;
+            }
+            .header-bar > div {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .nav {
+                padding: 12px 15px;
+            }
+            .content {
+                padding: 15px;
+            }
+            .notification-dropdown {
+                width: 280px;
+                right: -15px;
+            }
+        }
+        a:focus, button:focus {
+            outline: 2px solid var(--secondary-color);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header-bar">
+        <h1><a href="{{ url_for('index') }}">Gestor TI</a></h1>
+        <div>
+            <span>Olá, {{ current_user.nome }}!</span>
+            <div class="notifications">
+                <div class="notification-bell" id="notification-bell">🔔</div>
+                <span class="notification-count" id="notif-count" style="display: none;"></span>
+                <div class="notification-dropdown" id="notif-dropdown">
+                    <div id="notif-list"></div>
+                    <div class="notification-footer">
+                        <a href="{{ url_for('listar_notificacoes') }}">Ver todas</a>
+                    </div>
+                </div>
+            </div>
+            <a href="{{ url_for('logout') }}">Sair</a>
+        </div>
+    </header>
+    <nav class="nav">
+        <a href="{{ url_for('adicionar_ativo') }}">Adicionar Ativo</a>
+        <a href="{{ url_for('alocar_ativo') }}">Alocar Ativo</a>
+        <a href="{{ url_for('devolver_ativo') }}">Devolver Ativo</a>
+        <a href="{{ url_for('importar_csv') }}">Importar via CSV</a>
+        <a href="{{ url_for('listar_chips') }}">Gerir Chips</a>
+        <a href="{{ url_for('listar_demandas') }}">Ver Demandas</a>
+        <a href="{{ url_for('adicionar_demanda') }}">Adicionar Demanda</a>
+        <a href="{{ url_for('listar_categorias') }}">Gerir Categorias</a>
+        <a href="{{ url_for('listar_centros_custo') }}">Gerir Centros de Custo</a>
+        <a href="{{ url_for('listar_usuarios') }}">Gerir Utilizadores</a>
+    </nav>
+    <main class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+    <script>
+        const notifCount = document.getElementById('notif-count');
+        const notifList = document.getElementById('notif-list');
+        const notifDropdown = document.getElementById('notif-dropdown');
+        const notifBell = document.getElementById('notification-bell');
+        let lastCount = 0;
+        
+        function fetchNotifications() {
+            fetch("{{ url_for('notificacoes_json') }}")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro ao buscar notificações');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && Array.isArray(data)) {
+                        if (data.length > 0) {
+                            notifCount.textContent = data.length;
+                            notifCount.style.display = 'block';
+                            if (data.length > lastCount) {
+                                notifBell.classList.add('ring');
+                                setTimeout(() => {
+                                    notifBell.classList.remove('ring');
+                                }, 500);
+                            }
+                            lastCount = data.length;
+                        } else {
+                            notifCount.style.display = 'none';
+                        }
+                        
+                        notifList.innerHTML = '';
+                        data.slice(0, 5).forEach(notif => {
+                            const item = document.createElement('div');
+                            item.className = 'notification-item';
+                            if (notif.link) {
+                                item.innerHTML = `<a href="${notif.link}">${notif.mensagem}</a>`;
+                            } else {
+                                item.innerHTML = `<span>${notif.mensagem}</span>`;
+                            }
+                            notifList.appendChild(item);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar notificações:', error);
+                });
+        }
+        
+        function toggleNotifications() {
+            const isVisible = notifDropdown.style.display === 'block';
+            notifDropdown.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) fetchNotifications();
+        }
+        
+        fetchNotifications();
+        setInterval(fetchNotifications, 15000);
+        
+        window.onclick = function(event) {
+            if (!event.target.closest('.notifications')) {
+                notifDropdown.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
