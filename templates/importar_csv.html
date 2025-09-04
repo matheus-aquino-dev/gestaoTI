@@ -339,6 +339,11 @@
                 }
 
                 console.log('Enviando via JavaScript...');
+                loading.style.display = 'block';
+                submitBtn.style.display = 'none';
+                jsSubmitBtn.disabled = true;
+                testBtn.disabled = true;
+                
                 const formData = new FormData();
                 formData.append('arquivo', fileInput.files[0]);
                 
@@ -349,13 +354,27 @@
                 .then(response => {
                     console.log('Resposta recebida:', response.status);
                     if (response.ok) {
-                        window.location.href = response.url;
+                        // Obter o conteúdo HTML da resposta
+                        return response.text().then(html => {
+                            // Substituir o conteúdo da página atual com o HTML recebido
+                            document.open();
+                            document.write(html);
+                            document.close();
+                        });
                     } else {
+                        loading.style.display = 'none';
+                        submitBtn.style.display = 'inline-block';
+                        jsSubmitBtn.disabled = false;
+                        testBtn.disabled = false;
                         alert('Erro ao enviar arquivo');
                     }
                 })
                 .catch(error => {
                     console.error('Erro:', error);
+                    loading.style.display = 'none';
+                    submitBtn.style.display = 'inline-block';
+                    jsSubmitBtn.disabled = false;
+                    testBtn.disabled = false;
                     alert('Erro ao enviar arquivo: ' + error);
                 });
             });

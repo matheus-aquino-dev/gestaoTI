@@ -16,7 +16,13 @@ from openpyxl.styles import Font, Alignment, PatternFill
 
 # --- 1. CONFIGURAÇÃO DO APP E LOGIN ---
 app = Flask(__name__)
-app.secret_key = 'sua-chave-secreta-aqui'
+app.secret_key = 'chave_secreta_fixa_para_gestao_ativos_ti'
+
+# Configurações adicionais para a sessão
+from datetime import timedelta
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -331,16 +337,52 @@ def importar_csv():
                 return redirect(request.url)
             
             first_line = lines[0]
-            delimiter = ';' if ';' in first_line else ','
+            print(f"Primeira linha do arquivo: '{first_line}'")
+            
+            # Verificar se há delimitadores no arquivo
+            if ';' in first_line:
+                delimiter = ';'
+            elif ',' in first_line:
+                delimiter = ','
+            else:
+                flash('Formato de arquivo inválido. Não foi possível detectar o delimitador (vírgula ou ponto-e-vírgula).', 'danger')
+                return redirect(request.url)
             print(f"Delimitador detectado: '{delimiter}'")
             
             # Processar CSV
-            csv_reader = csv.reader(lines, delimiter=delimiter)
-            headers = next(csv_reader)
+            try:
+                csv_reader = csv.reader(lines, delimiter=delimiter)
+                headers = next(csv_reader)
+                if not headers or len(headers) < 2:  # Verificar se há cabeçalhos válidos
+                    flash('Formato de arquivo inválido. Cabeçalhos não encontrados.', 'danger')
+                    return redirect(request.url)
+            except Exception as e:
+                flash(f'Erro ao processar o arquivo CSV: {str(e)}', 'danger')
+                return redirect(request.url)
             print(f"Headers encontrados: {headers}")
             
-            # Limpar headers
+            # Limpar headers e mapear para os nomes de campo corretos
             headers = [h.strip() for h in headers]
+            
+            # Mapeamento de cabeçalhos para nomes de campos no banco de dados
+            header_mapping = {
+                'Nome': 'Nome',
+                'Modelo': 'Modelo',
+                'Categoria': 'Categoria',
+                'Centro de Custo': 'Centro de Custo',
+                'Valor': 'Valor',
+                'Status': 'Status',
+                'Data Aquisicao': 'DataAquisicao',
+                'Patrimonio': 'Patrimonio',
+                'Numero Serie': 'NumeroSerie',
+                'Descricao': 'Descricao',
+                'Numero Chip': 'NumeroChip',
+                'IMEI1': 'IMEI1',
+                'IMEI2': 'IMEI2'
+            }
+            
+            # Substituir cabeçalhos pelo mapeamento
+            headers = [header_mapping.get(h, h) for h in headers]
             
             preview_data = []
             for i, row in enumerate(csv_reader):
@@ -355,7 +397,35 @@ def importar_csv():
                 flash('Nenhum dado válido encontrado no arquivo.', 'warning')
                 return redirect(request.url)
             
-            session['preview_data'] = json.dumps(preview_data)
+            # Garantir que os dados sejam armazenados corretamente na sessão
+            preview_data_json = json.dumps(preview_data)
+            
+            # Limpar a sessão antes de armazenar novos dados
+            if 'preview_data' in session:
+                session.pop('preview_data', None)
+                
+            # Armazenar dados na sessão
+            session['preview_data'] = preview_data_json
+            print(f"Dados armazenados na sessão: {len(preview_data)} registros")
+            print(f"Tamanho do JSON: {len(preview_data_json)} bytes")
+            
+            # Verificar se os dados foram armazenados corretamente
+            if 'preview_data' in session:
+                print(f"Verificação: dados presentes na sessão")
+                # Verificar se os dados são os mesmos
+                session_data = session.get('preview_data')
+                print(f"Verificação de integridade: {session_data == preview_data_json}")
+                print(f"Primeiros 100 caracteres: {session_data[:100]}")
+            else:
+                print(f"ERRO: dados não foram armazenados na sessão")
+                
+            # Forçar a persistência da sessão
+            session.modified = True
+            
+            # Salvar uma cópia dos dados em uma variável global para backup
+            app.config['LAST_PREVIEW_DATA'] = preview_data
+            session.modified = True
+                
             return render_template('preview_importacao.html', headers=headers, data=preview_data)
             
         except Exception as e:
@@ -372,7 +442,7 @@ def importar_csv():
 def importar_csv_simples():
     if request.method == 'POST':
         try:
-            print("=== TESTE SIMPLES ===")
+            print("=== IMPORTAÇÃO DIRETA ===")
             print(f"Files in request: {list(request.files.keys())}")
             print(f"Form data: {dict(request.form)}")
             
@@ -388,32 +458,116 @@ def importar_csv_simples():
                 flash('Nenhum arquivo selecionado.', 'danger')
                 return redirect(request.url)
             
+            if not arquivo.filename.lower().endswith('.csv'):
+                flash('Formato de arquivo inválido. Por favor, envie um .csv', 'danger')
+                return redirect(request.url)
+            
             # Ler arquivo
             content = arquivo.read()
             print(f"Tamanho: {len(content)} bytes")
             
-            # Tentar decodificar
-            try:
-                text = content.decode('utf-8')
-                print("Decodificado com UTF-8")
-            except:
+            # Tentar diferentes codificações
+            encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1']
+            text_content = None
+            
+            for encoding in encodings:
                 try:
-                    text = content.decode('latin-1')
-                    print("Decodificado com Latin-1")
-                except:
-                    flash('Erro ao decodificar arquivo.', 'danger')
-                    return redirect(request.url)
+                    text_content = content.decode(encoding)
+                    print(f"Arquivo decodificado com sucesso usando: {encoding}")
+                    break
+                except UnicodeDecodeError as e:
+                    print(f"Falha ao decodificar com {encoding}: {e}")
+                    continue
             
-            lines = text.splitlines()
-            print(f"Linhas: {len(lines)}")
-            print(f"Primeira linha: {lines[0] if lines else 'VAZIO'}")
+            if text_content is None:
+                flash('Não foi possível decodificar o arquivo. Verifique a codificação.', 'danger')
+                return redirect(request.url)
             
-            flash(f'Arquivo processado com sucesso! {len(lines)} linhas encontradas.', 'success')
-            return redirect(request.url)
+            # Detectar delimitador
+            lines = text_content.splitlines()
+            if not lines:
+                flash('Arquivo vazio.', 'danger')
+                return redirect(request.url)
+            
+            first_line = lines[0]
+            delimiter = ';' if ';' in first_line else ','
+            print(f"Delimitador detectado: '{delimiter}'")
+            
+            # Processar CSV
+            csv_reader = csv.reader(lines, delimiter=delimiter)
+            headers = next(csv_reader)
+            print(f"Headers encontrados: {headers}")
+            
+            # Limpar headers
+            headers = [h.strip() for h in headers]
+            
+            # Processar dados
+            data_to_import = []
+            for i, row in enumerate(csv_reader):
+                if len(row) == len(headers):
+                    data_to_import.append(dict(zip(headers, row)))
+                else:
+                    print(f"Linha {i+2} ignorada: {len(row)} colunas, esperado {len(headers)}")
+            
+            print(f"Total de registros válidos: {len(data_to_import)}")
+            
+            if not data_to_import:
+                flash('Nenhum dado válido encontrado no arquivo.', 'warning')
+                return redirect(request.url)
+            
+            # Importar dados diretamente
+            ativos_importados = 0
+            for row in data_to_import:
+                cat_nome = row.get('Categoria', '').strip()
+                cc_nome = row.get('Centro de Custo', '').strip()
+                if not cat_nome or not cc_nome: continue
+                
+                # Verificar/criar categoria
+                categoria = db_query("SELECT id FROM categorias WHERE nome = ?", (cat_nome,), fetchone=True)
+                if not categoria:
+                    db_query("INSERT INTO categorias (nome) VALUES (?)", (cat_nome,), commit=True)
+                    categoria = db_query("SELECT id FROM categorias WHERE nome = ?", (cat_nome,), fetchone=True)
+                
+                # Verificar/criar centro de custo
+                cc = db_query("SELECT id FROM centros_custo WHERE nome = ?", (cc_nome,), fetchone=True)
+                if not cc:
+                    db_query("INSERT INTO centros_custo (nome) VALUES (?)", (cc_nome,), commit=True)
+                    cc = db_query("SELECT id FROM centros_custo WHERE nome = ?", (cc_nome,), fetchone=True)
+                
+                # Preparar dados do ativo
+                nome = row.get('Nome', '').strip()
+                if not nome:
+                    print(f"Ignorando linha sem nome: {row}")
+                    continue
+                    
+                valor_str = row.get('Valor', '').replace(',', '.')
+                ativo_dados = {
+                    "nome": nome, "modelo": row.get('Modelo'), "categoria_id": categoria['id'],
+                    "centro_custo_id": cc['id'], "valor": valor_str or None,
+                    "data_aquisicao": row.get('DataAquisicao'), "patrimonio": row.get('Patrimonio'),
+                    "numero_serie": row.get('NumeroSerie'), "descricao": row.get('Descricao'),
+                    "numero_chip": row.get('NumeroChip'), "imei1": row.get('IMEI1'), "imei2": row.get('IMEI2'), "status": 'Disponivel'
+                }
+                
+                # Remover campos vazios, exceto 'nome' que é obrigatório
+                ativo_dados_limpo = {k: v for k, v in ativo_dados.items() if v or k == 'nome'}
+                
+                # Inserir no banco
+                colunas = ', '.join(ativo_dados_limpo.keys())
+                placeholders = ', '.join(['?'] * len(ativo_dados_limpo))
+                db_query(f"INSERT INTO ativos ({colunas}) VALUES ({placeholders})", list(ativo_dados_limpo.values()), commit=True)
+                ativos_importados += 1
+            
+            # Notificar sucesso
+            criar_notificacao(f"{ativos_importados} ativos foram importados com sucesso.", url_for('index'))
+            flash(f'Importação concluída! {ativos_importados} ativos importados com sucesso.', 'success')
+            return redirect(url_for('index'))
             
         except Exception as e:
-            print(f"Erro: {e}")
-            flash(f'Erro: {str(e)}', 'danger')
+            print(f"Erro na importação: {e}")
+            import traceback
+            traceback.print_exc()
+            flash(f'Ocorreu um erro ao processar o arquivo: {str(e)}', 'danger')
             return redirect(request.url)
     
     return render_template('importar_simples.html')
@@ -421,16 +575,65 @@ def importar_csv_simples():
 @app.route('/importar/confirmar', methods=['POST'])
 @login_required
 def confirmar_importacao():
-    preview_data_json = session.pop('preview_data', None)
-    if not preview_data_json:
-        flash('Nenhum dado para importar.', 'danger')
+    # Verificar se há dados na sessão
+    print("=== CONFIRMAÇÃO DE IMPORTAÇÃO ===")
+    print(f"Form data: {dict(request.form)}")
+    print(f"Chaves na sessão: {list(session.keys())}")
+    
+    # Verificar se o formulário foi enviado corretamente
+    if 'confirm_import' not in request.form:
+        flash('Formulário de confirmação inválido.', 'danger')
         return redirect(url_for('importar_csv'))
-    data_to_import = json.loads(preview_data_json)
+    
+    # Obter dados da sessão
+    preview_data_json = session.get('preview_data', None)
+    print(f"Dados na sessão (preview_data): {preview_data_json is not None}")
+    
+    # Inicializar data_to_import
+    data_to_import = None
+    
+    # Verificar se há dados na sessão ou no backup
+    if not preview_data_json:
+        print("Dados não encontrados na sessão, verificando backup...")
+        # Tentar recuperar do backup
+        backup_data = app.config.get('LAST_PREVIEW_DATA', None)
+        if backup_data:
+            print(f"Dados recuperados do backup: {len(backup_data)} registros")
+            data_to_import = backup_data
+            # Limpar o backup após uso
+            app.config['LAST_PREVIEW_DATA'] = None
+        else:
+            flash('Nenhum dado para importar. A sessão pode ter expirado.', 'danger')
+            return redirect(url_for('importar_csv'))
+    else:
+        # Guardar uma cópia dos dados antes de remover da sessão
+        data_json_copy = preview_data_json
+        
+        # Remover da sessão após obter os dados
+        session.pop('preview_data', None)
+        
+        try:
+            data_to_import = json.loads(data_json_copy)
+            print(f"Dados recuperados da sessão: {len(data_to_import)} registros")
+            print(f"Esperado: {request.form.get('total_records', 'N/A')} registros")
+        except json.JSONDecodeError as e:
+            print(f"Erro ao decodificar JSON: {e}")
+            print(f"Conteúdo do JSON: {data_json_copy[:100]}...")
+            flash(f'Erro ao decodificar os dados da sessão: {e}', 'danger')
+            return redirect(url_for('importar_csv'))
     try:
+        ativos_importados = 0
         for row in data_to_import:
             cat_nome = row.get('Categoria', '').strip()
             cc_nome = row.get('Centro de Custo', '').strip()
             if not cat_nome or not cc_nome: continue
+            
+            # Verificar se o nome está presente
+            nome = row.get('Nome', '').strip()
+            if not nome:
+                print(f"Ignorando linha sem nome: {row}")
+                continue
+                
             categoria = db_query("SELECT id FROM categorias WHERE nome = ?", (cat_nome,), fetchone=True)
             if not categoria:
                 db_query("INSERT INTO categorias (nome) VALUES (?)", (cat_nome,), commit=True)
@@ -441,18 +644,19 @@ def confirmar_importacao():
                 cc = db_query("SELECT id FROM centros_custo WHERE nome = ?", (cc_nome,), fetchone=True)
             valor_str = row.get('Valor', '').replace(',', '.')
             ativo_dados = {
-                "nome": row.get('Nome'), "modelo": row.get('Modelo'), "categoria_id": categoria['id'],
+                "nome": nome, "modelo": row.get('Modelo'), "categoria_id": categoria['id'],
                 "centro_custo_id": cc['id'], "valor": valor_str or None,
                 "data_aquisicao": row.get('DataAquisicao'), "patrimonio": row.get('Patrimonio'),
                 "numero_serie": row.get('NumeroSerie'), "descricao": row.get('Descricao'),
                 "numero_chip": row.get('NumeroChip'), "imei1": row.get('IMEI1'), "imei2": row.get('IMEI2'), "status": 'Disponivel'
             }
-            ativo_dados_limpo = {k: v for k, v in ativo_dados.items() if v}
+            ativo_dados_limpo = {k: v for k, v in ativo_dados.items() if v or k == 'nome'}
             colunas = ', '.join(ativo_dados_limpo.keys())
             placeholders = ', '.join(['?'] * len(ativo_dados_limpo))
             db_query(f"INSERT INTO ativos ({colunas}) VALUES ({placeholders})", list(ativo_dados_limpo.values()), commit=True)
-        criar_notificacao(f"{len(data_to_import)} ativos foram importados com sucesso.", url_for('index'))
-        flash('Ativos importados com sucesso!', 'success')
+            ativos_importados += 1
+        criar_notificacao(f"{ativos_importados} ativos foram importados com sucesso.", url_for('index'))
+        flash(f'Importação concluída! {ativos_importados} ativos importados com sucesso.', 'success')
     except Exception as e:
         flash(f'Ocorreu um erro na importação final: {e}', 'danger')
     return redirect(url_for('index'))
@@ -583,6 +787,344 @@ def devolver_ativo():
 def listar_chips():
     query = "SELECT c.id, c.numero, c.funcionario_nome, cc.nome as centro_custo, c.funcao, c.valor, c.vencimento_fatura, c.status FROM chips c LEFT JOIN centros_custo cc ON c.centro_custo_id = cc.id ORDER BY c.numero"
     return render_template('listar_chips.html', chips=db_query(query))
+
+@app.route('/chips/importar', methods=['GET', 'POST'])
+@login_required
+def importar_chips():
+    if request.method == 'POST':
+        try:
+            # Verificar se há arquivo
+            if 'arquivo' not in request.files:
+                flash('Nenhum arquivo foi enviado.', 'danger')
+                return redirect(request.url)
+            
+            arquivo = request.files['arquivo']
+            
+            if arquivo.filename == '':
+                flash('Nenhum ficheiro selecionado.', 'danger')
+                return redirect(request.url)
+            
+            if not arquivo.filename.lower().endswith('.csv'):
+                flash('Formato de ficheiro inválido. Por favor, envie um .csv', 'danger')
+                return redirect(request.url)
+            
+            # Salvar o arquivo temporariamente para debug
+            temp_path = os.path.join(os.path.dirname(__file__), 'temp_upload.csv')
+            arquivo.save(temp_path)
+            print(f"Arquivo salvo temporariamente em: {temp_path}")
+            
+            # Usar pandas para ler o CSV (mais robusto)
+            try:
+                import pandas as pd
+                # Tentar com diferentes delimitadores
+                try:
+                    df = pd.read_csv(temp_path, sep=',')
+                    delimiter = ','
+                except:
+                    try:
+                        df = pd.read_csv(temp_path, sep=';')
+                        delimiter = ';'
+                    except Exception as e:
+                        flash(f'Erro ao processar o arquivo CSV: {str(e)}', 'danger')
+                        return redirect(request.url)
+                
+                print(f"Arquivo lido com sucesso usando pandas. Delimitador: {delimiter}")
+                print(f"Colunas encontradas: {list(df.columns)}")
+                print(f"Primeiras linhas:\n{df.head()}")
+                
+                if df.empty:
+                    flash('Arquivo vazio ou sem dados válidos.', 'danger')
+                    return redirect(request.url)
+                
+                # Converter DataFrame para lista de dicionários
+                records = df.to_dict('records')
+                
+                # Extrair cabeçalhos
+                headers = list(df.columns)
+                lines = []
+            except ImportError:
+                # Fallback para o método antigo se pandas não estiver disponível
+                with open(temp_path, 'r', newline='', encoding='utf-8') as f:
+                    text_content = f.read()
+                    print(f"Conteúdo do arquivo:\n{text_content[:500]}")
+                
+                # Detectar delimitador
+                lines = text_content.splitlines()
+                if not lines:
+                    flash('Arquivo vazio.', 'danger')
+                    return redirect(request.url)
+                
+                first_line = lines[0]
+                delimiter = ';' if ';' in first_line else ','
+            
+            # Mapeamento de cabeçalhos para nomes de campos no banco de dados
+            header_mapping = {
+                'Numero': 'numero',
+                'Funcionario Nome': 'funcionario_nome',
+                'Centro de Custo': 'centro_custo',
+                'Funcao': 'funcao',
+                'Valor': 'valor',
+                'Vencimento Fatura': 'vencimento_fatura',
+                'Status': 'status'
+            }
+            print(f"Mapeamento de cabeçalhos: {header_mapping}")
+            
+            # Preparar dados para pré-visualização
+            preview_data = []
+            print(f"Iniciando processamento das linhas do CSV...")
+            row_count = 0
+            skipped_wrong_length = 0
+            skipped_no_numero = 0
+            
+            # Processar dados com base no método de leitura (pandas ou csv)
+            if 'records' in locals():
+                # Usar dados do pandas
+                print(f"Processando {len(records)} registros do pandas")
+                
+                # Renomear colunas para corresponder ao banco de dados
+                renamed_records = []
+                for record in records:
+                    renamed_record = {}
+                    for key, value in record.items():
+                        # Mapear cabeçalho para nome de campo no banco
+                        db_key = header_mapping.get(key, key)
+                        renamed_record[db_key] = value
+                    renamed_records.append(renamed_record)
+                
+                # Processar registros
+                for row in renamed_records:
+                    row_count += 1
+                    print(f"Processando registro {row_count}: {row}")
+                    
+                    # Verificar se o número do chip está presente (campo obrigatório)
+                    numero_chip = str(row.get('numero'))
+                    print(f"  Número do chip: '{numero_chip}'")
+                    
+                    # Verificar se é NaN ou vazio
+                    if numero_chip == 'nan' or numero_chip.strip() == '':
+                        print(f"  Pulando linha {row_count}: número de chip vazio ou ausente")
+                        skipped_no_numero += 1
+                        continue
+                    
+                    # Verificar se o chip já existe
+                    chip_existente = db_query("SELECT id FROM chips WHERE numero = ?", (numero_chip,), fetchone=True)
+                    if chip_existente:
+                        # Marcar chips que já existem para informação na pré-visualização
+                        print(f"  Chip já existe no sistema: {numero_chip}")
+                        row['_ja_existe'] = True
+                    else:
+                        row['_ja_existe'] = False
+                        print(f"  Chip novo: {numero_chip}")
+                    
+                    preview_data.append(row)
+                    print(f"  Registro {row_count} adicionado aos dados de pré-visualização")
+            else:
+                # Usar método tradicional com csv.reader
+                csv_reader = csv.reader(lines, delimiter=delimiter)
+                headers = next(csv_reader)
+                
+                # Log para debug
+                print(f"Headers originais: {headers}")
+                print(f"Delimitador detectado: '{delimiter}'")
+                print(f"Primeiras linhas do arquivo:")
+                for i, line in enumerate(lines[:5]):
+                    print(f"Linha {i}: {line}")
+                    
+                # Verificar se o arquivo está no formato correto
+                if len(headers) < 1:
+                    flash('Formato de arquivo inválido. Cabeçalhos não encontrados.', 'danger')
+                    return redirect(request.url)
+                
+                # Limpar headers e mapear para os nomes de campo corretos
+                headers = [h.strip() for h in headers]
+                print(f"Headers após strip: {headers}")
+                
+                # Substituir cabeçalhos pelo mapeamento
+                headers = [header_mapping.get(h, h) for h in headers]
+                print(f"Headers após mapeamento: {headers}")
+                
+                for row_data in csv_reader:
+                    row_count += 1
+                    print(f"Processando linha {row_count}: {row_data}")
+                    
+                    if len(row_data) != len(headers):
+                        print(f"  Pulando linha {row_count}: número incorreto de colunas ({len(row_data)} vs {len(headers)} esperado)")
+                        skipped_wrong_length += 1
+                        continue
+                    
+                    row = dict(zip(headers, row_data))
+                    print(f"  Dados após mapeamento: {row}")
+                    
+                    # Verificar se o número do chip está presente (campo obrigatório)
+                    numero_chip = row.get('numero')
+                    print(f"  Número do chip: '{numero_chip}'")
+                    
+                    if not numero_chip or numero_chip.strip() == '':
+                        print(f"  Pulando linha {row_count}: número de chip vazio ou ausente")
+                        skipped_no_numero += 1
+                        continue  # Pular esta linha se não tiver número de chip
+                    
+                    # Verificar se o chip já existe
+                    chip_existente = db_query("SELECT id FROM chips WHERE numero = ?", (numero_chip,), fetchone=True)
+                    if chip_existente:
+                        # Marcar chips que já existem para informação na pré-visualização
+                        print(f"  Chip já existe no sistema: {numero_chip}")
+                        row['_ja_existe'] = True
+                    else:
+                        row['_ja_existe'] = False
+                        print(f"  Chip novo: {numero_chip}")
+                    
+                    preview_data.append(row)
+                    print(f"  Linha {row_count} adicionada aos dados de pré-visualização")
+            
+            print(f"Processamento concluído: {row_count} linhas processadas, {skipped_wrong_length} puladas por comprimento incorreto, {skipped_no_numero} puladas por falta de número")
+            print(f"Total de dados válidos: {len(preview_data)}")
+            
+            
+            if not preview_data:
+                flash('Nenhum dado válido encontrado no arquivo.', 'warning')
+                return redirect(request.url)
+            
+            # Armazenar dados na sessão para uso posterior
+            preview_data_json = json.dumps(preview_data)
+            session['preview_chips_data'] = preview_data_json
+            
+            # Forçar a persistência da sessão
+            session.modified = True
+            
+            # Salvar uma cópia dos dados em uma variável global para backup
+            app.config['LAST_PREVIEW_CHIPS_DATA'] = preview_data
+            
+            # Renderizar a pré-visualização
+            return render_template('preview_importacao.html', headers=headers, data=preview_data, tipo='chips')
+            
+        except Exception as e:
+            print(f"Erro completo: {e}")
+            import traceback
+            traceback.print_exc()
+            flash(f'Ocorreu um erro ao processar o arquivo: {str(e)}', 'danger')
+            return redirect(request.url)
+    
+    return render_template('importar_chips.html')
+
+@app.route('/chips/importar/confirmar', methods=['POST'])
+@login_required
+def confirmar_importacao_chips():
+    # Verificar se há dados na sessão
+    print("=== CONFIRMAÇÃO DE IMPORTAÇÃO DE CHIPS ===")
+    print(f"Form data: {dict(request.form)}")
+    print(f"Chaves na sessão: {list(session.keys())}")
+    
+    # Verificar se o formulário foi enviado corretamente
+    if 'confirm_import' not in request.form:
+        flash('Formulário de confirmação inválido.', 'danger')
+        return redirect(url_for('importar_chips'))
+    
+    # Obter dados da sessão
+    preview_data_json = session.get('preview_chips_data', None)
+    print(f"Dados na sessão (preview_chips_data): {preview_data_json is not None}")
+    
+    # Inicializar data_to_import
+    data_to_import = None
+    
+    # Verificar se há dados na sessão ou no backup
+    if not preview_data_json:
+        print("Dados não encontrados na sessão, verificando backup...")
+        # Tentar recuperar do backup
+        backup_data = app.config.get('LAST_PREVIEW_CHIPS_DATA', None)
+        if backup_data:
+            print(f"Dados recuperados do backup: {len(backup_data)} registros")
+            data_to_import = backup_data
+            # Limpar o backup após uso
+            app.config['LAST_PREVIEW_CHIPS_DATA'] = None
+        else:
+            flash('Nenhum dado para importar. A sessão pode ter expirado.', 'danger')
+            return redirect(url_for('importar_chips'))
+    else:
+        # Guardar uma cópia dos dados antes de remover da sessão
+        data_json_copy = preview_data_json
+        
+        # Remover da sessão após obter os dados
+        session.pop('preview_chips_data', None)
+        
+        try:
+            data_to_import = json.loads(data_json_copy)
+            print(f"Dados recuperados da sessão: {len(data_to_import)} registros")
+            print(f"Esperado: {request.form.get('total_records', 'N/A')} registros")
+        except json.JSONDecodeError as e:
+            print(f"Erro ao decodificar JSON: {e}")
+            print(f"Conteúdo do JSON: {data_json_copy[:100]}...")
+            flash(f'Erro ao decodificar os dados da sessão: {e}', 'danger')
+            return redirect(url_for('importar_chips'))
+    
+    try:
+        chips_importados = 0
+        for row in data_to_import:
+            # Pular chips que já existem
+            if row.get('_ja_existe', False):
+                continue
+                
+            # Verificar se o número do chip está presente (campo obrigatório)
+            numero_chip = row.get('numero')
+            if not numero_chip or numero_chip.strip() == '':
+                continue  # Pular esta linha se não tiver número de chip
+            
+            # Obter centro de custo
+            cc_nome = row.get('centro_custo')
+            cc = db_query("SELECT id FROM centros_custo WHERE nome = ?", (cc_nome,), fetchone=True)
+            if not cc:
+                db_query("INSERT INTO centros_custo (nome) VALUES (?)", (cc_nome,), commit=True)
+                cc = db_query("SELECT id FROM centros_custo WHERE nome = ?", (cc_nome,), fetchone=True)
+            
+            # Preparar dados do chip
+            valor_str = row.get('valor', '').replace(',', '.')
+            chip_dados = {
+                "numero": numero_chip,
+                "funcionario_nome": row.get('funcionario_nome'),
+                "centro_custo_id": cc['id'] if cc else None,
+                "funcao": row.get('funcao'),
+                "valor": valor_str or None,
+                "vencimento_fatura": row.get('vencimento_fatura'),
+                "status": row.get('status', 'Ativo')
+            }
+            
+            # Remover campos vazios, exceto 'numero' que é obrigatório
+            chip_dados_limpo = {k: v for k, v in chip_dados.items() if v or k == 'numero'}
+            
+            # Inserir no banco
+            colunas = ', '.join(chip_dados_limpo.keys())
+            placeholders = ', '.join(['?'] * len(chip_dados_limpo))
+            db_query(f"INSERT INTO chips ({colunas}) VALUES ({placeholders})", list(chip_dados_limpo.values()), commit=True)
+            chips_importados += 1
+        
+        # Notificar sucesso
+        criar_notificacao(f"{chips_importados} chips foram importados com sucesso.", url_for('listar_chips'))
+        flash(f'Importação concluída! {chips_importados} chips importados com sucesso.', 'success')
+        return redirect(url_for('listar_chips'))
+        
+    except Exception as e:
+        print(f"Erro na importação: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Ocorreu um erro ao importar os chips: {str(e)}', 'danger')
+        return redirect(url_for('importar_chips'))
+
+@app.route('/chips/modelo')
+@login_required
+def modelo_importacao_chips():
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Cabeçalhos
+    headers = ['Numero', 'Funcionario Nome', 'Centro de Custo', 'Funcao', 'Valor', 'Vencimento Fatura', 'Status']
+    writer.writerow(headers)
+    
+    # Exemplo de linha
+    example_row = ['11999887766', 'João Silva', 'TI São Paulo', 'Celular', '50.00', '10', 'Ativo']
+    writer.writerow(example_row)
+    
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode('utf-8-sig')), mimetype='text/csv', as_attachment=True, download_name='modelo_importacao_chips.csv')
 
 @app.route('/chips/adicionar', methods=['GET', 'POST'])
 @login_required

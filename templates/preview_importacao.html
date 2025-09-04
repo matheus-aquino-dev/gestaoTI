@@ -215,8 +215,10 @@
     </div>
     
     <div class="actions">
-        <form action="{{ url_for('confirmar_importacao') }}" method="post" style="display:inline;">
-            <button type="submit" class="confirm-btn">
+        <form action="{{ url_for('confirmar_importacao') }}" method="post" style="display:inline;" id="confirm-form">
+            <input type="hidden" name="confirm_import" value="true">
+            <input type="hidden" name="total_records" value="{{ data|length }}">
+            <button type="submit" class="confirm-btn" id="confirm-btn">
                 <span class="icon">✓</span> Confirmar Importação
             </button>
         </form>
@@ -224,5 +226,21 @@
             <span class="icon">✗</span> Cancelar
         </a>
     </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const confirmForm = document.getElementById('confirm-form');
+            const confirmBtn = document.getElementById('confirm-btn');
+            
+            confirmForm.addEventListener('submit', function(e) {
+                // Desabilitar o botão para evitar múltiplos cliques
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<span class="icon">⏳</span> Processando...';
+                
+                // Permitir o envio normal do formulário
+                return true;
+            });
+        });
+    </script>
 </body>
 </html>

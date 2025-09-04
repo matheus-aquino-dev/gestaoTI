@@ -1,0 +1,6 @@
+Numero,Funcionario Nome,Centro de Custo,Funcao,Valor,Vencimento Fatura,Status
+11999887766,João Silva,TI São Paulo,Celular,50.00,10,Ativo
+22999887766,Maria Oliveira,TI São Paulo,Modem,30.00,15,Ativo
+33999887766,,TI São Paulo,Telemetria,20.00,20,Em estoque
+44999887766,Carlos Santos,TI São Paulo,Celular,50.00,10,Ativo
+55999887766,,TI São Paulo,Modem,30.00,15,Cancelado

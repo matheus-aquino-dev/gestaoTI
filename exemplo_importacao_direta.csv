@@ -1,0 +1,11 @@
+Nome;Categoria;Centro de Custo;Modelo;Valor;DataAquisicao;Patrimonio;NumeroSerie;Descricao;NumeroChip;IMEI1;IMEI2
+Notebook Dell;Notebooks;TI;Inspiron 15;3500,00;2023-01-15;NB001;SN12345;Notebook para equipe de desenvolvimento;;
+Monitor LG;Monitores;RH;Ultrawide;1200,00;2023-02-20;MN002;SN67890;Monitor para equipe de RH;;
+Smartphone Samsung;Celulares;Comercial;Galaxy S21;2800,00;2023-03-10;SP001;SN24680;Celular para gerente comercial;11999887766;123456789012345;987654321098765
+Tablet Apple;Tablets;Diretoria;iPad Pro;4500,00;2023-04-05;TB001;SN13579;Tablet para reuniões;;
+Roteador TP-Link;Redes;TI;Archer C6;350,00;2023-05-12;RT001;SN97531;Roteador para sala de reuniões;;
+Impressora HP;Impressoras;Administrativo;LaserJet Pro;1800,00;2023-06-18;IM001;SN86420;Impressora para departamento administrativo;;
+Projetor Epson;Projetores;Treinamento;PowerLite;2200,00;2023-07-22;PJ001;SN75319;Projetor para sala de treinamentos;;
+Scanner Brother;Scanners;Jurídico;ADS-2200;1500,00;2023-08-30;SC001;SN95173;Scanner para digitalização de documentos;;
+Nobreak APC;Energia;TI;Back-UPS;800,00;2023-09-15;NB001;SN15973;Nobreak para servidores;;
+Switch Cisco;Redes;TI;Catalyst 2960;1200,00;2023-10-20;SW001;SN35791;Switch para rack principal;;
