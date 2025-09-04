@@ -14,8 +14,13 @@
             --hover-bg: #f8f9fa;
             --success-color: #27ae60;
             --warning-color: #f39c12;
+            --info-color: #16a085;
         }
-
+        
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             padding: 20px;
@@ -24,7 +29,7 @@
             color: var(--text-dark);
             line-height: 1.6;
         }
-
+        
         .header-bar {
             display: flex;
             justify-content: space-between;
@@ -34,35 +39,54 @@
             background-color: var(--white);
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
         }
-
+        
+        .header-bar::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--secondary-color), var(--primary-color));
+        }
+        
         h1 {
             margin: 0;
             color: var(--primary-color);
             font-size: 28px;
             font-weight: 600;
+            position: relative;
+            z-index: 1;
         }
-
+        
         .header-bar span {
             font-size: 16px;
             color: #555;
+            display: flex;
+            align-items: center;
         }
-
+        
         .header-bar a {
-            color: var(--accent-color);
+            color: var(--white);
+            background-color: var(--accent-color);
             text-decoration: none;
             font-weight: 500;
             margin-left: 8px;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 5px 12px;
+            border-radius: 20px;
             transition: all 0.3s ease;
+            display: inline-block;
         }
-
+        
         .header-bar a:hover {
-            background-color: rgba(231, 76, 60, 0.1);
-            text-decoration: none;
+            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.2);
         }
-
+        
         .nav {
             display: flex;
             gap: 15px;
@@ -73,7 +97,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
-
+        
         .nav a {
             color: var(--secondary-color);
             text-decoration: none;
@@ -83,30 +107,30 @@
             transition: all 0.3s ease;
             position: relative;
         }
-
+        
         .nav a:hover {
             background-color: rgba(52, 152, 219, 0.1);
             color: #2980b9;
         }
-
+        
         .nav a::after {
             content: "|";
             margin-left: 15px;
             color: #ccc;
         }
-
+        
         .nav a:last-child::after {
             content: "";
             margin-left: 0;
         }
-
+        
         hr {
             border: none;
             height: 1px;
-            background-color: var(--border-color);
+            background: linear-gradient(to right, transparent, var(--border-color), transparent);
             margin: 25px 0;
         }
-
+        
         table {
             border-collapse: collapse;
             width: 100%;
@@ -115,16 +139,16 @@
             overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         }
-
+        
         th, td {
             border: none;
             padding: 14px 18px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
-
+        
         th {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), #1a2530);
             color: var(--white);
             font-weight: 600;
             text-transform: uppercase;
@@ -132,41 +156,44 @@
             letter-spacing: 0.5px;
             position: sticky;
             top: 0;
+            z-index: 10;
         }
-
+        
         tr:nth-child(even) {
             background-color: #f8f9fa;
         }
-
+        
         tr:hover {
             background-color: var(--hover-bg);
         }
-
+        
         td a {
-            color: var(--secondary-color);
+            color: var(--white);
+            background-color: var(--secondary-color);
             text-decoration: none;
             font-weight: 500;
             margin-right: 12px;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            border-radius: 20px;
             transition: all 0.3s ease;
             display: inline-block;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-
+        
         td a:hover {
-            background-color: rgba(52, 152, 219, 0.1);
-            color: #2980b9;
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
-
+        
         td a:last-child {
-            color: var(--accent-color);
+            background-color: var(--accent-color);
         }
-
+        
         td a:last-child:hover {
-            background-color: rgba(231, 76, 60, 0.1);
-            color: #c0392b;
+            background-color: #c0392b;
         }
-
+        
         td[colspan="8"] {
             text-align: center;
             padding: 30px;
@@ -174,12 +201,42 @@
             color: #777;
             background-color: #f8f9fa;
         }
-
+        
         /* Status styles */
         td:nth-child(7) {
             font-weight: 500;
+            position: relative;
         }
-
+        
+        /* Status badges */
+        .status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status-alocado {
+            background-color: rgba(52, 152, 219, 0.1);
+            color: var(--secondary-color);
+        }
+        
+        .status-disponivel {
+            background-color: rgba(39, 174, 96, 0.1);
+            color: var(--success-color);
+        }
+        
+        .status-manutencao {
+            background-color: rgba(243, 156, 18, 0.1);
+            color: var(--warning-color);
+        }
+        
+        .status-baixa {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: var(--accent-color);
+        }
+        
         /* Adicionando um pouco de responsividade */
         @media (max-width: 768px) {
             .header-bar {
@@ -201,6 +258,32 @@
                 display: block;
                 overflow-x: auto;
             }
+            
+            td a {
+                margin-bottom: 5px;
+                margin-right: 5px;
+            }
+        }
+        
+        /* Animações suaves */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        tr {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        /* Ícones para ações */
+        .action-icon {
+            margin-right: 5px;
+        }
+        
+        /* Melhorias de acessibilidade */
+        table:focus {
+            outline: 2px solid var(--secondary-color);
+            outline-offset: -2px;
         }
     </style>
 </head>
@@ -215,6 +298,7 @@
         <a href="{{ url_for('devolver_ativo') }}">Devolver Ativo</a> |
         <a href="{{ url_for('importar_csv') }}">Importar via CSV</a> |
         <a href="{{ url_for('listar_chips') }}">Gerir Chips</a> |
+        <a href="{{ url_for('listar_demandas') }}">Ver Demandas</a> |
         <a href="{{ url_for('listar_categorias') }}">Gerir Categorias</a> |
         <a href="{{ url_for('listar_centros_custo') }}">Gerir Centros de Custo</a> |
         <a href="{{ url_for('listar_usuarios') }}">Gerir Utilizadores</a>
@@ -243,15 +327,23 @@
                 <td>{{ ativo.centro_custo or 'N/A' }}</td>
                 <td>{{ "%.2f"|format(ativo.valor|float) if ativo.valor else 'N/A' }}</td>
                 <td>
-                    {{ ativo.status }}
-                    {% if ativo.status == 'Alocado' and ativo.funcionario_nome %}
-                        ({{ ativo.funcionario_nome }})
-                    {% endif %}
+                    <span class="status status-{{ ativo.status|lower }}">
+                        {{ ativo.status }}
+                        {% if ativo.status == 'Alocado' and ativo.funcionario_nome %}
+                            ({{ ativo.funcionario_nome }})
+                        {% endif %}
+                    </span>
                 </td>
                 <td>
-                    <a href="{{ url_for('detalhes_ativo', id=ativo.id) }}">Detalhes</a>
-                    <a href="{{ url_for('editar_ativo', id=ativo.id) }}">Editar</a>
-                    <a href="{{ url_for('excluir_ativo', id=ativo.id) }}" onclick="return confirm('Tem certeza?');">Excluir</a>
+                    <a href="{{ url_for('detalhes_ativo', id=ativo.id) }}">
+                        <span class="action-icon">👁️</span>Detalhes
+                    </a>
+                    <a href="{{ url_for('editar_ativo', id=ativo.id) }}">
+                        <span class="action-icon">✏️</span>Editar
+                    </a>
+                    <a href="{{ url_for('excluir_ativo', id=ativo.id) }}" onclick="return confirm('Tem certeza?');">
+                        <span class="action-icon">🗑️</span>Excluir
+                    </a>
                 </td>
             </tr>
             {% else %}

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lista de Demandas</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f5f7fa;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --border-color: #ddd;
+            --hover-bg: #f8f9fa;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --info-color: #16a085;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            margin: 0;
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.9em;
+            background-color: var(--white);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        th, td {
+            border: none;
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--primary-color), #1a2530);
+            color: var(--white);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: var(--hover-bg);
+        }
+
+        /* Classes de urgência com cores mais suaves */
+        .urgencia-baixa {
+            background-color: rgba(39, 174, 96, 0.1);
+        }
+
+        .urgencia-baixa td:nth-child(6) {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        .urgência-média {
+            background-color: rgba(243, 156, 18, 0.1);
+        }
+
+        .urgência-média td:nth-child(6) {
+            color: var(--warning-color);
+            font-weight: 600;
+        }
+
+        .urgência-alta {
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+
+        .urgência-alta td:nth-child(6) {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        /* Correção para acentuação */
+        .urgencia-média, .urgencia-alta {
+            background-color: rgba(243, 156, 18, 0.1);
+        }
+
+        .urgencia-média td:nth-child(6) {
+            color: var(--warning-color);
+            font-weight: 600;
+        }
+
+        .urgencia-alta td:nth-child(6) {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        /* Status badges */
+        td:nth-child(7) {
+            font-weight: 500;
+        }
+
+        .status-pendente {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background-color: rgba(243, 156, 18, 0.1);
+            color: var(--warning-color);
+            font-size: 13px;
+        }
+
+        .status-em_andamento {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background-color: rgba(52, 152, 219, 0.1);
+            color: var(--secondary-color);
+            font-size: 13px;
+        }
+
+        .status-concluido {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background-color: rgba(39, 174, 96, 0.1);
+            color: var(--success-color);
+            font-size: 13px;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            display: inline-block;
+            border: 1px solid var(--primary-color);
+        }
+
+        a:hover {
+            background-color: rgba(44, 62, 80, 0.05);
+            color: var(--secondary-color);
+        }
+
+        /* Adicionando um pouco de responsividade */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            th, td {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+
+        /* Animações suaves */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        tr {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Ícones para status */
+        .status-icon {
+            margin-right: 5px;
+        }
+
+        /* Container para melhor organização */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Melhorias de acessibilidade */
+        table:focus {
+            outline: 2px solid var(--secondary-color);
+            outline-offset: -2px;
+        }
+
+        /* Indicadores visuais para urgência */
+        .urgency-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .urgency-baixa .urgency-indicator {
+            background-color: var(--success-color);
+        }
+
+        .urgência-média .urgency-indicator {
+            background-color: var(--warning-color);
+        }
+
+        .urgência-alta .urgency-indicator {
+            background-color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lista de Demandas</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Data</th>
+                    <th>Solicitante</th>
+                    <th>Departamento</th>
+                    <th>Descrição</th>
+                    <th>Urgência</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for demanda in demandas %}
+                <tr class="urgencia-{{ demanda.urgencia|lower }}">
+                    <td>{{ demanda.id }}</td>
+                    <td>{{ demanda.data_criacao }}</td>
+                    <td>{{ demanda.nome_solicitante }}</td>
+                    <td>{{ demanda.departamento }}</td>
+                    <td>{{ demanda.descricao }}</td>
+                    <td>
+                        <span class="urgency-indicator"></span>{{ demanda.urgencia }}
+                    </td>
+                    <td>
+                        <span class="status-{{ demanda.status|lower }}">
+                            <span class="status-icon"></span>{{ demanda.status|replace('_', ' ')|capitalize }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center;">Nenhuma demanda encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('index') }}">Voltar ao Painel</a>
+    </div>
+</body>
+</html>

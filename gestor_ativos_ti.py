@@ -49,11 +49,14 @@ def criar_banco():
                  FOREIGN KEY (ativo_id) REFERENCES ativos(id))''')
     c.execute('''CREATE TABLE IF NOT EXISTS historico_alocacoes (id INTEGER PRIMARY KEY, ativo_id INTEGER, funcionario_nome TEXT, data_alocacao DATE, data_devolucao DATE,
                  FOREIGN KEY (ativo_id) REFERENCES ativos(id))''')
-    # ATUALIZAÇÃO: Tabela de chips agora usa 'funcionario_nome' em vez de 'funcionario_id'
     c.execute('''CREATE TABLE IF NOT EXISTS chips (
                  id INTEGER PRIMARY KEY, numero TEXT NOT NULL UNIQUE, funcionario_nome TEXT, 
                  centro_custo_id INTEGER, funcao TEXT, valor REAL, vencimento_fatura INTEGER, status TEXT DEFAULT 'Ativo',
                  FOREIGN KEY (centro_custo_id) REFERENCES centros_custo(id))''')
+    # NOVA TABELA DE DEMANDAS
+    c.execute('''CREATE TABLE IF NOT EXISTS demandas (
+                 id INTEGER PRIMARY KEY, nome_solicitante TEXT NOT NULL, departamento TEXT,
+                 descricao TEXT NOT NULL, urgencia TEXT, data_criacao DATE, status TEXT DEFAULT 'Aberta')''')
     conn.commit()
     conn.close()
 
@@ -113,6 +116,33 @@ def index():
         LEFT JOIN alocacoes al ON a.id = al.ativo_id
     """
     return render_template('index.html', ativos=db_query(query))
+
+# --- NOVAS ROTAS DE DEMANDAS ---
+@app.route('/nova_demanda')
+def nova_demanda():
+    return render_template('nova_demanda.html')
+
+@app.route('/enviar_demanda', methods=['POST'])
+def enviar_demanda():
+    dados = {
+        'nome_solicitante': request.form['nome'],
+        'departamento': request.form['departamento'],
+        'descricao': request.form['descricao'],
+        'urgencia': request.form['urgencia'],
+        'data_criacao': datetime.now().date(),
+        'status': 'Aberta'
+    }
+    colunas = ', '.join(dados.keys())
+    placeholders = ', '.join(['?'] * len(dados))
+    db_query(f"INSERT INTO demandas ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
+    flash('Demanda enviada com sucesso!', 'success')
+    return redirect(url_for('nova_demanda'))
+
+@app.route('/demandas')
+@login_required
+def listar_demandas():
+    demandas = db_query("SELECT * FROM demandas ORDER BY data_criacao DESC")
+    return render_template('listar_demandas.html', demandas=demandas)
 
 # --- Rota de Download do CSV Modelo ---
 @app.route('/download/modelo_csv')
@@ -254,45 +284,6 @@ def devolver_ativo():
     alocacoes_query = "SELECT al.id, a.nome as ativo, al.funcionario_nome FROM alocacoes al JOIN ativos a ON al.ativo_id = a.id"
     return render_template('devolver_ativo.html', alocacoes=db_query(alocacoes_query))
 
-# --- ROTAS DE GESTÃO DE CHIPS ---
-@app.route('/chips')
-@login_required
-def listar_chips():
-    query = """
-        SELECT c.id, c.numero, c.funcionario_nome, cc.nome as centro_custo, c.funcao, c.valor, c.vencimento_fatura, c.status
-        FROM chips c
-        LEFT JOIN centros_custo cc ON c.centro_custo_id = cc.id
-        ORDER BY c.numero
-    """
-    return render_template('listar_chips.html', chips=db_query(query))
-
-@app.route('/chips/adicionar', methods=['GET', 'POST'])
-@login_required
-def adicionar_chip():
-    if request.method == 'POST':
-        dados = {k: v for k, v in request.form.to_dict().items() if v}
-        colunas = ', '.join(dados.keys())
-        placeholders = ', '.join(['?'] * len(dados))
-        db_query(f"INSERT INTO chips ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
-        flash('Chip adicionado com sucesso!', 'success')
-        return redirect(url_for('listar_chips'))
-    return render_template('adicionar_editar_chip.html', titulo="Adicionar Chip", 
-                           centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
-
-@app.route('/chips/<int:id>/editar', methods=['GET', 'POST'])
-@login_required
-def editar_chip(id):
-    if request.method == 'POST':
-        dados = request.form.to_dict()
-        set_clause = ', '.join([f"{key} = ?" for key in dados.keys()])
-        db_query(f"UPDATE chips SET {set_clause} WHERE id = ?", list(dados.values()) + [id], commit=True)
-        flash('Chip atualizado com sucesso!', 'success')
-        return redirect(url_for('listar_chips'))
-    return render_template('adicionar_editar_chip.html', 
-                           titulo="Editar Chip",
-                           chip=db_query("SELECT * FROM chips WHERE id = ?", (id,), fetchone=True),
-                           centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
-
 # --- Rotas de Gerenciamento ---
 # CENTROS DE CUSTO
 @app.route('/centros_custo')
@@ -383,6 +374,45 @@ def editar_usuario(id):
 def excluir_usuario(id):
     db_query("DELETE FROM usuarios WHERE id = ?", (id,), commit=True)
     return redirect(url_for('listar_usuarios'))
+
+# CHIPS
+@app.route('/chips')
+@login_required
+def listar_chips():
+    query = """
+        SELECT c.id, c.numero, c.funcionario_nome, cc.nome as centro_custo, c.funcao, c.valor, c.vencimento_fatura, c.status
+        FROM chips c
+        LEFT JOIN centros_custo cc ON c.centro_custo_id = cc.id
+        ORDER BY c.numero
+    """
+    return render_template('listar_chips.html', chips=db_query(query))
+
+@app.route('/chips/adicionar', methods=['GET', 'POST'])
+@login_required
+def adicionar_chip():
+    if request.method == 'POST':
+        dados = {k: v for k, v in request.form.to_dict().items() if v}
+        colunas = ', '.join(dados.keys())
+        placeholders = ', '.join(['?'] * len(dados))
+        db_query(f"INSERT INTO chips ({colunas}) VALUES ({placeholders})", list(dados.values()), commit=True)
+        flash('Chip adicionado com sucesso!', 'success')
+        return redirect(url_for('listar_chips'))
+    return render_template('adicionar_editar_chip.html', titulo="Adicionar Chip", 
+                           centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
+
+@app.route('/chips/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def editar_chip(id):
+    if request.method == 'POST':
+        dados = request.form.to_dict()
+        set_clause = ', '.join([f"{key} = ?" for key in dados.keys()])
+        db_query(f"UPDATE chips SET {set_clause} WHERE id = ?", list(dados.values()) + [id], commit=True)
+        flash('Chip atualizado com sucesso!', 'success')
+        return redirect(url_for('listar_chips'))
+    return render_template('adicionar_editar_chip.html', 
+                           titulo="Editar Chip",
+                           chip=db_query("SELECT * FROM chips WHERE id = ?", (id,), fetchone=True),
+                           centros_custo=db_query("SELECT id, nome FROM centros_custo ORDER BY nome"))
 
 if __name__ == '__main__':
     criar_banco()

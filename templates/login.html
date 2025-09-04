@@ -11,9 +11,16 @@
             --border-color: #ddd;
             --hover-color: #e9ecef;
             --text-color: #333;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            --shadow-light: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
-
+        
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
@@ -23,116 +30,325 @@
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             margin: 0;
             padding: 20px;
+            position: relative;
         }
-
+        
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNlZWUiPjwvcmVjdD4KPC9zdmc+');
+            opacity: 0.3;
+            z-index: 0;
+        }
+        
         .container {
             background: white;
             padding: 40px;
-            border-radius: 10px;
+            border-radius: 15px;
             box-shadow: var(--shadow);
             width: 100%;
-            max-width: 350px;
-            animation: fadeIn 0.5s ease-in-out;
+            max-width: 400px;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.3s ease;
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+        
+        .container:hover {
+            transform: translateY(-5px);
         }
-
+        
         h1 {
             text-align: center;
             color: var(--secondary-color);
             margin-bottom: 30px;
             font-weight: 600;
+            font-size: 28px;
+            position: relative;
+            padding-bottom: 15px;
         }
-
-        .form-group {
-            margin-bottom: 20px;
+        
+        h1::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            border-radius: 3px;
         }
-
+        
+        .form-group { 
+            margin-bottom: 25px; 
+            position: relative;
+        }
+        
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: 500;
             color: var(--secondary-color);
+            font-size: 15px;
         }
-
+        
         input {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: 8px;
             box-sizing: border-box;
             font-size: 1rem;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            transition: all 0.3s ease;
         }
-
+        
         input:focus {
+            outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-            outline: none;
         }
-
+        
         button {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background-color: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 1rem;
             font-weight: 600;
-            transition: background-color 0.3s, transform 0.1s;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-light);
+            margin-top: 10px;
         }
-
+        
         button:hover {
             background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
         }
-
+        
         button:active {
             transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-
+        
         .alert {
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            font-weight: 500;
+            animation: slideDown 0.5s ease-out;
+        }
+        
+        .alert-danger {
             color: #721c24;
             background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            animation: shake 0.5s ease-in-out;
+            border-left: 4px solid var(--accent-color);
         }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-left: 4px solid var(--success-color);
         }
-
+        
+        .alert-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-left: 4px solid var(--primary-color);
+        }
+        
         .links {
             text-align: center;
-            margin-top: 25px;
+            margin-top: 30px;
             color: var(--text-color);
+            font-size: 14px;
         }
-
+        
         .links a {
             color: var(--primary-color);
             text-decoration: none;
             font-weight: 500;
-            transition: color 0.3s;
+            transition: all 0.3s ease;
         }
-
+        
         .links a:hover {
-            color: var(--secondary-color);
+            color: #2980b9;
             text-decoration: underline;
+        }
+        
+        .divider {
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            margin-top: 30px;
+            padding-top: 30px;
+            position: relative;
+        }
+        
+        .divider::before {
+            content: "ou";
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 0 10px;
+            color: #777;
+            font-size: 14px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .logo-icon {
+            font-size: 48px;
+            color: var(--primary-color);
+        }
+        
+        /* Melhoria para destacar a opção de abrir demanda */
+        .demanda-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--warning-color), #e67e22);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+            margin-top: 20px;
+            text-decoration: none;
+        }
+        
+        .demanda-button:hover {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(243, 156, 18, 0.4);
+        }
+        
+        .demanda-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(243, 156, 18, 0.2);
+        }
+        
+        .demanda-icon {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        
+        .demanda-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .demanda-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .demanda-subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+            font-weight: normal;
+        }
+        
+        /* Adicionando um pouco de responsividade */
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            input, button {
+                padding: 12px;
+            }
+            
+            .demanda-button {
+                padding: 12px;
+            }
+            
+            .demanda-icon {
+                font-size: 18px;
+            }
+        }
+        
+        /* Animações */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .container {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        .demanda-button {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Melhorias de acessibilidade */
+        input:focus, button:focus {
+            outline: none;
+        }
+        
+        /* Ícone para o formulário */
+        .form-icon {
+            position: absolute;
+            right: 15px;
+            top: 42px;
+            color: #777;
+        }
+        
+        /* Efeito de preenchimento para inputs */
+        .form-group {
+            position: relative;
+        }
+        
+        .form-group input:focus + .form-icon {
+            color: var(--primary-color);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Login</h1>
+        <div class="logo">
+            <div class="logo-icon">🔐</div>
+        </div>
+        <h1>Acesso ao Sistema</h1>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -142,18 +358,30 @@
         {% endwith %}
         <form method="post">
             <div class="form-group">
-                <label for="nome">Nome de Usuário:</label>
+                <label for="nome">Nome de Utilizador (TI):</label>
                 <input type="text" name="nome" id="nome" required>
+                <span class="form-icon">👤</span>
             </div>
             <div class="form-group">
                 <label for="password">Senha:</label>
                 <input type="password" name="password" id="password" required>
+                <span class="form-icon">🔒</span>
             </div>
             <button type="submit">Entrar</button>
         </form>
         <div class="links">
-            <p>Não tem uma conta? <a href="{{ url_for('register') }}">Registre-se</a></p>
+            <p>Não tem uma conta? <a href="{{ url_for('register') }}">Registe-se</a></p>
+        </div>
+        <div class="divider">
+            <!-- Botão destacado para abrir nova demanda -->
+            <a href="{{ url_for('nova_demanda') }}" class="demanda-button">
+                <span class="demanda-icon">📝</span>
+                <div class="demanda-text">
+                    <span class="demanda-title">Abrir Nova Demanda</span>
+                    <span class="demanda-subtitle">Sem necessidade de login</span>
+                </div>
+            </a>
         </div>
     </div>
 </body>
-</html>
+</html>ce
