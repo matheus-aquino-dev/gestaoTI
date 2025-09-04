@@ -1,0 +1,6 @@
+Nome,Modelo,Categoria,Centro de Custo,Valor,DataAquisicao,Patrimonio,NumeroSerie,Descricao,NumeroChip,IMEI1,IMEI2
+Notebook Dell Inspiron,Dell Inspiron 15 3000,Notebooks,TI São Paulo,2500.00,2024-01-15,PAT-001,DL123456789,Notebook i5 com 8GB RAM,,,
+Desktop HP,HP Pavilion Desktop,Desktops,TI São Paulo,1800.00,2024-02-10,PAT-002,HP987654321,Desktop i3 com 4GB RAM,,,
+Smartphone Samsung,Samsung Galaxy A54,Smartphones,TI São Paulo,1200.00,2024-03-05,PAT-003,SM555666777,Smartphone 128GB,11999887766,123456789012345,987654321098765
+Monitor LG,LG 24MK430H,Monitores,TI São Paulo,450.00,2024-01-20,PAT-004,LG111222333,Monitor 24" Full HD,,,
+Tablet iPad,Apple iPad Air,Tablets,TI São Paulo,3500.00,2024-02-28,PAT-005,AP444555666,Tablet 64GB Wi-Fi,,,

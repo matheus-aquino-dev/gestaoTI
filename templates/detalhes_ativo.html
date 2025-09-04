@@ -379,6 +379,20 @@
         <a href="{{ url_for('editar_ativo', id=ativo.id) }}" class="action-button edit-button">
             <span class="icon">✏️</span>Editar Ativo
         </a>
+        {% if ativo.status == 'Alocado' %}
+        <form action="{{ url_for('devolver_ativo_rapido', id=ativo.id) }}" method="POST" style="display:inline;">
+            <button type="submit" class="action-button back-button">
+                <span class="icon">↩️</span>Devolver
+            </button>
+        </form>
+        {% else %}
+        <form action="{{ url_for('alocar_ativo_rapido', id=ativo.id) }}" method="POST" style="display:inline; display:flex; gap:8px; align-items:center;">
+            <input type="text" name="funcionario_nome" placeholder="Funcionário" required style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;">
+            <button type="submit" class="action-button back-button" style="border-color:#27ae60;color:#27ae60;">
+                <span class="icon">➕</span>Alocar
+            </button>
+        </form>
+        {% endif %}
         <a href="{{ url_for('index') }}" class="action-button back-button">
             <span class="icon">←</span>Voltar
         </a>

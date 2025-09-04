@@ -170,10 +170,12 @@
         }
 
         .file-upload input[type=file] {
-            position: absolute;
-            opacity: 0;
+            display: block;
             width: 100%;
-            height: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
             cursor: pointer;
         }
 
@@ -242,17 +244,122 @@
         </a>
     </div>
     
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" id="import-form">
         <label>Selecione o ficheiro CSV:</label>
-        <div class="file-upload">
-            <input type="file" name="arquivo" accept=".csv" required>
-            <label for="arquivo" class="file-upload-label">
-                <span class="icon">📁</span> Clique para selecionar um arquivo CSV ou arraste e solte aqui
-            </label>
+        <input type="file" name="arquivo" accept=".csv" required id="csv-file" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;">
+        
+        <div id="file-info" style="display: none; margin: 10px 0; padding: 10px; background-color: #e8f5e8; border-radius: 4px; border-left: 4px solid #28a745;">
+            <span class="icon">✅</span> <span id="file-name"></span> selecionado
         </div>
-        <input type="submit" value="Pré-visualizar Importação">
+        
+        <input type="submit" value="Pré-visualizar Importação" id="submit-btn" style="background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+        <button type="button" id="test-btn" style="padding: 12px 20px; background-color: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">Testar Arquivo</button>
+        <button type="button" id="js-submit-btn" style="padding: 12px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">Enviar via JS</button>
+        
+        <div id="loading" style="display: none; margin: 10px 0; padding: 10px; background-color: #fff3cd; border-radius: 4px; border-left: 4px solid #ffc107;">
+            <span class="icon">⏳</span> Processando arquivo...
+        </div>
+        <div id="test-info" style="display: none; margin: 10px 0; padding: 10px; background-color: #d1ecf1; border-radius: 4px; border-left: 4px solid #17a2b8;">
+            <span class="icon">ℹ️</span> <span id="test-details"></span>
+        </div>
     </form>
     
     <a href="{{ url_for('index') }}"><span class="icon">←</span> Voltar</a>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('csv-file');
+            const fileInfo = document.getElementById('file-info');
+            const fileName = document.getElementById('file-name');
+            const submitBtn = document.getElementById('submit-btn');
+            const loading = document.getElementById('loading');
+            const form = document.getElementById('import-form');
+            const testBtn = document.getElementById('test-btn');
+            const testInfo = document.getElementById('test-info');
+            const testDetails = document.getElementById('test-details');
+            const jsSubmitBtn = document.getElementById('js-submit-btn');
+
+            // Mostrar feedback quando arquivo for selecionado
+            fileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    fileName.textContent = file.name;
+                    fileInfo.style.display = 'block';
+                    console.log('Arquivo selecionado:', file.name, file.size, 'bytes');
+                } else {
+                    fileInfo.style.display = 'none';
+                }
+            });
+
+            // Mostrar loading ao enviar formulário
+            form.addEventListener('submit', function(e) {
+                console.log('=== FORMULÁRIO SENDO ENVIADO ===');
+                console.log('Arquivo selecionado:', fileInput.files[0]);
+                
+                if (!fileInput.files || !fileInput.files[0]) {
+                    e.preventDefault();
+                    alert('Por favor, selecione um arquivo antes de enviar.');
+                    return false;
+                }
+                
+                console.log('Arquivo válido, enviando...');
+                submitBtn.style.display = 'none';
+                loading.style.display = 'block';
+                fileInput.disabled = true;
+                
+                // Permitir o envio normal do formulário
+                return true;
+            });
+
+            // Remover funcionalidade de drag & drop por enquanto para simplificar
+
+            // Botão de teste
+            testBtn.addEventListener('click', function() {
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    testDetails.innerHTML = `
+                        <strong>Arquivo detectado:</strong><br>
+                        Nome: ${file.name}<br>
+                        Tamanho: ${(file.size / 1024).toFixed(2)} KB<br>
+                        Tipo: ${file.type}<br>
+                        Última modificação: ${new Date(file.lastModified).toLocaleString()}
+                    `;
+                    testInfo.style.display = 'block';
+                } else {
+                    testDetails.innerHTML = 'Nenhum arquivo selecionado.';
+                    testInfo.style.display = 'block';
+                }
+            });
+
+            // Botão de envio via JavaScript
+            jsSubmitBtn.addEventListener('click', function() {
+                if (!fileInput.files || !fileInput.files[0]) {
+                    alert('Selecione um arquivo primeiro!');
+                    return;
+                }
+
+                console.log('Enviando via JavaScript...');
+                const formData = new FormData();
+                formData.append('arquivo', fileInput.files[0]);
+                
+                fetch('{{ url_for("importar_csv") }}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    console.log('Resposta recebida:', response.status);
+                    if (response.ok) {
+                        window.location.href = response.url;
+                    } else {
+                        alert('Erro ao enviar arquivo');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao enviar arquivo: ' + error);
+                });
+            });
+        });
+    </script>
 </body>
 </html>

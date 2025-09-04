@@ -6,6 +6,13 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill
 
 # --- 1. CONFIGURAÇÃO DO APP E LOGIN ---
 app = Flask(__name__)
@@ -273,25 +280,143 @@ def download_modelo_csv():
 @login_required
 def importar_csv():
     if request.method == 'POST':
-        arquivo = request.files.get('arquivo')
-        if not arquivo or arquivo.filename == '':
-            flash('Nenhum ficheiro selecionado.', 'danger')
-            return redirect(request.url)
-        if not arquivo.filename.endswith('.csv'):
-            flash('Formato de ficheiro inválido. Por favor, envie um .csv', 'danger')
-            return redirect(request.url)
         try:
-            stream = arquivo.stream.read().decode("utf-8")
-            delimiter = ';' if ';' in stream.splitlines()[0] else ','
-            csv_data = csv.reader(stream.splitlines(), delimiter=delimiter)
-            headers = next(csv_data)
-            preview_data = [dict(zip(headers, row)) for row in csv_data]
+            # Debug: verificar o que está sendo enviado
+            print(f"Files in request: {list(request.files.keys())}")
+            print(f"Form data: {dict(request.form)}")
+            
+            # Verificar se há arquivo
+            if 'arquivo' not in request.files:
+                flash('Nenhum arquivo foi enviado.', 'danger')
+                return redirect(request.url)
+            
+            arquivo = request.files['arquivo']
+            print(f"Arquivo recebido: {arquivo}")
+            print(f"Nome do arquivo: {arquivo.filename}")
+            
+            if arquivo.filename == '':
+                flash('Nenhum ficheiro selecionado.', 'danger')
+                return redirect(request.url)
+            
+            if not arquivo.filename.lower().endswith('.csv'):
+                flash('Formato de ficheiro inválido. Por favor, envie um .csv', 'danger')
+                return redirect(request.url)
+            
+            # Ler o arquivo
+            arquivo.seek(0)  # Reset stream position
+            content = arquivo.read()
+            print(f"Tamanho do arquivo: {len(content)} bytes")
+            
+            # Tentar diferentes codificações
+            encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1']
+            text_content = None
+            
+            for encoding in encodings:
+                try:
+                    text_content = content.decode(encoding)
+                    print(f"Arquivo decodificado com sucesso usando: {encoding}")
+                    break
+                except UnicodeDecodeError as e:
+                    print(f"Falha ao decodificar com {encoding}: {e}")
+                    continue
+            
+            if text_content is None:
+                flash('Não foi possível decodificar o arquivo. Verifique a codificação.', 'danger')
+                return redirect(request.url)
+            
+            # Detectar delimitador
+            lines = text_content.splitlines()
+            if not lines:
+                flash('Arquivo vazio.', 'danger')
+                return redirect(request.url)
+            
+            first_line = lines[0]
+            delimiter = ';' if ';' in first_line else ','
+            print(f"Delimitador detectado: '{delimiter}'")
+            
+            # Processar CSV
+            csv_reader = csv.reader(lines, delimiter=delimiter)
+            headers = next(csv_reader)
+            print(f"Headers encontrados: {headers}")
+            
+            # Limpar headers
+            headers = [h.strip() for h in headers]
+            
+            preview_data = []
+            for i, row in enumerate(csv_reader):
+                if len(row) == len(headers):
+                    preview_data.append(dict(zip(headers, row)))
+                else:
+                    print(f"Linha {i+2} ignorada: {len(row)} colunas, esperado {len(headers)}")
+            
+            print(f"Total de registros válidos: {len(preview_data)}")
+            
+            if not preview_data:
+                flash('Nenhum dado válido encontrado no arquivo.', 'warning')
+                return redirect(request.url)
+            
             session['preview_data'] = json.dumps(preview_data)
             return render_template('preview_importacao.html', headers=headers, data=preview_data)
+            
         except Exception as e:
-            flash(f'Ocorreu um erro ao processar o ficheiro: {e}', 'danger')
+            print(f"Erro completo: {e}")
+            import traceback
+            traceback.print_exc()
+            flash(f'Ocorreu um erro ao processar o ficheiro: {str(e)}', 'danger')
             return redirect(request.url)
+    
     return render_template('importar_csv.html')
+
+@app.route('/importar-simples', methods=['GET', 'POST'])
+@login_required
+def importar_csv_simples():
+    if request.method == 'POST':
+        try:
+            print("=== TESTE SIMPLES ===")
+            print(f"Files in request: {list(request.files.keys())}")
+            print(f"Form data: {dict(request.form)}")
+            
+            if 'arquivo' not in request.files:
+                flash('Nenhum arquivo foi enviado.', 'danger')
+                return redirect(request.url)
+            
+            arquivo = request.files['arquivo']
+            print(f"Arquivo: {arquivo}")
+            print(f"Nome: {arquivo.filename}")
+            
+            if arquivo.filename == '':
+                flash('Nenhum arquivo selecionado.', 'danger')
+                return redirect(request.url)
+            
+            # Ler arquivo
+            content = arquivo.read()
+            print(f"Tamanho: {len(content)} bytes")
+            
+            # Tentar decodificar
+            try:
+                text = content.decode('utf-8')
+                print("Decodificado com UTF-8")
+            except:
+                try:
+                    text = content.decode('latin-1')
+                    print("Decodificado com Latin-1")
+                except:
+                    flash('Erro ao decodificar arquivo.', 'danger')
+                    return redirect(request.url)
+            
+            lines = text.splitlines()
+            print(f"Linhas: {len(lines)}")
+            print(f"Primeira linha: {lines[0] if lines else 'VAZIO'}")
+            
+            flash(f'Arquivo processado com sucesso! {len(lines)} linhas encontradas.', 'success')
+            return redirect(request.url)
+            
+        except Exception as e:
+            print(f"Erro: {e}")
+            flash(f'Erro: {str(e)}', 'danger')
+            return redirect(request.url)
+    
+    return render_template('importar_simples.html')
 
 @app.route('/importar/confirmar', methods=['POST'])
 @login_required
@@ -381,6 +506,37 @@ def detalhes_ativo(id):
         fetchone=True,
     )
     return render_template('detalhes_ativo.html', ativo=ativo, historico=historico, alocacao=alocacao)
+
+@app.route('/ativo/<int:id>/alocar_rapido', methods=['POST'])
+@login_required
+def alocar_ativo_rapido(id):
+    funcionario_nome = request.form.get('funcionario_nome')
+    if not funcionario_nome:
+        flash('Informe o nome do funcionário para alocar.', 'danger')
+        return redirect(url_for('detalhes_ativo', id=id))
+    data = datetime.now().date()
+    db_query("INSERT INTO alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", (id, funcionario_nome, data), commit=True)
+    db_query("INSERT INTO historico_alocacoes (ativo_id, funcionario_nome, data_alocacao) VALUES (?, ?, ?)", (id, funcionario_nome, data), commit=True)
+    db_query("UPDATE ativos SET status = 'Alocado' WHERE id = ?", (id,), commit=True)
+    ativo = db_query("SELECT nome FROM ativos WHERE id = ?", (id,), fetchone=True)
+    criar_notificacao(f"Ativo '{ativo['nome']}' alocado para {funcionario_nome}.", url_for('detalhes_ativo', id=id))
+    flash('Ativo alocado com sucesso.', 'success')
+    return redirect(url_for('detalhes_ativo', id=id))
+
+@app.route('/ativo/<int:id>/devolver_rapido', methods=['POST'])
+@login_required
+def devolver_ativo_rapido(id):
+    alocacao = db_query("SELECT id, funcionario_nome FROM alocacoes WHERE ativo_id = ?", (id,), fetchone=True)
+    if not alocacao:
+        flash('Este ativo não está alocado.', 'warning')
+        return redirect(url_for('detalhes_ativo', id=id))
+    db_query("UPDATE ativos SET status = 'Disponivel' WHERE id = ?", (id,), commit=True)
+    db_query("UPDATE historico_alocacoes SET data_devolucao = ? WHERE ativo_id = ? AND data_devolucao IS NULL", (datetime.now().date(), id), commit=True)
+    db_query("DELETE FROM alocacoes WHERE id = ?", (alocacao['id'],), commit=True)
+    ativo = db_query("SELECT nome FROM ativos WHERE id = ?", (id,), fetchone=True)
+    criar_notificacao(f"Ativo '{ativo['nome']}' foi devolvido por {alocacao['funcionario_nome']}.", url_for('detalhes_ativo', id=id))
+    flash('Ativo devolvido com sucesso.', 'success')
+    return redirect(url_for('detalhes_ativo', id=id))
 
 @app.route('/ativo/<int:id>/excluir')
 @login_required
@@ -521,6 +677,171 @@ def excluir_categoria(id):
     db_query("DELETE FROM categorias WHERE id = ?", (id,), commit=True)
     criar_notificacao(f"Categoria '{item['nome']}' foi excluída.")
     return redirect(url_for('listar_categorias'))
+
+# --- ROTAS DE EXPORTAÇÃO ---
+@app.route('/exportar/pdf')
+@login_required
+def exportar_pdf():
+    query = """
+        SELECT a.id, a.nome, cat.nome as categoria, cc.nome as centro_custo, 
+               a.modelo, a.valor, a.status, al.funcionario_nome
+        FROM ativos a 
+        LEFT JOIN categorias cat ON a.categoria_id = cat.id
+        LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id
+        LEFT JOIN alocacoes al ON a.id = al.ativo_id
+        ORDER BY a.id
+    """
+    ativos = db_query(query)
+    
+    # Criar PDF
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+        alignment=1  # Center
+    )
+    
+    # Título
+    title = Paragraph("Relatório de Ativos TI", title_style)
+    elements.append(title)
+    elements.append(Spacer(1, 20))
+    
+    # Data de geração
+    date_style = ParagraphStyle(
+        'DateStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=2  # Right
+    )
+    date_text = Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}", date_style)
+    elements.append(date_text)
+    elements.append(Spacer(1, 20))
+    
+    # Tabela de dados
+    if ativos:
+        data = [['ID', 'Nome', 'Modelo', 'Categoria', 'Centro Custo', 'Valor (R$)', 'Status', 'Funcionário']]
+        
+        for ativo in ativos:
+            valor = f"{ativo['valor']:.2f}" if ativo['valor'] else 'N/A'
+            funcionario = ativo['funcionario_nome'] or 'N/A'
+            data.append([
+                str(ativo['id']),
+                ativo['nome'] or 'N/A',
+                ativo['modelo'] or 'N/A',
+                ativo['categoria'] or 'N/A',
+                ativo['centro_custo'] or 'N/A',
+                valor,
+                ativo['status'] or 'N/A',
+                funcionario
+            ])
+        
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        
+        elements.append(table)
+    else:
+        no_data = Paragraph("Nenhum ativo encontrado.", styles['Normal'])
+        elements.append(no_data)
+    
+    # Construir PDF
+    doc.build(elements)
+    buffer.seek(0)
+    
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f'relatorio_ativos_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf',
+        mimetype='application/pdf'
+    )
+
+@app.route('/exportar/excel')
+@login_required
+def exportar_excel():
+    query = """
+        SELECT a.id, a.nome, cat.nome as categoria, cc.nome as centro_custo, 
+               a.modelo, a.valor, a.status, al.funcionario_nome
+        FROM ativos a 
+        LEFT JOIN categorias cat ON a.categoria_id = cat.id
+        LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id
+        LEFT JOIN alocacoes al ON a.id = al.ativo_id
+        ORDER BY a.id
+    """
+    ativos = db_query(query)
+    
+    # Criar Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Relatório de Ativos"
+    
+    # Estilos
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    center_alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Cabeçalhos
+    headers = ['ID', 'Nome', 'Modelo', 'Categoria', 'Centro de Custo', 'Valor (R$)', 'Status', 'Funcionário']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_alignment
+    
+    # Dados
+    for row, ativo in enumerate(ativos, 2):
+        valor = f"{ativo['valor']:.2f}" if ativo['valor'] else 'N/A'
+        funcionario = ativo['funcionario_nome'] or 'N/A'
+        
+        ws.cell(row=row, column=1, value=ativo['id'])
+        ws.cell(row=row, column=2, value=ativo['nome'] or 'N/A')
+        ws.cell(row=row, column=3, value=ativo['modelo'] or 'N/A')
+        ws.cell(row=row, column=4, value=ativo['categoria'] or 'N/A')
+        ws.cell(row=row, column=5, value=ativo['centro_custo'] or 'N/A')
+        ws.cell(row=row, column=6, value=valor)
+        ws.cell(row=row, column=7, value=ativo['status'] or 'N/A')
+        ws.cell(row=row, column=8, value=funcionario)
+    
+    # Ajustar largura das colunas
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 30)
+        ws.column_dimensions[column_letter].width = adjusted_width
+    
+    # Salvar em buffer
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f'relatorio_ativos_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
 
 # Alias de endpoints para compatibilidade com templates genéricos
 app.add_url_rule('/categorias/adicionar', endpoint='adicionar_categorias', view_func=adicionar_categoria, methods=['GET', 'POST'])

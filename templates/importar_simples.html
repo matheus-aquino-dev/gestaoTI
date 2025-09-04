@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Importar CSV - Versão Simples</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type=file] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        input[type=submit] { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        input[type=submit]:hover { background: #0056b3; }
+        .alert { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    </style>
+</head>
+<body>
+    <h1>Importar CSV - Teste Simples</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="arquivo">Selecione o arquivo CSV:</label>
+            <input type="file" name="arquivo" id="arquivo" accept=".csv" required>
+        </div>
+        <div class="form-group">
+            <input type="submit" value="Enviar Arquivo">
+        </div>
+    </form>
+    
+    <p><a href="{{ url_for('index') }}">← Voltar ao Painel</a></p>
+    
+    <script>
+        document.getElementById('arquivo').addEventListener('change', function() {
+            console.log('Arquivo selecionado:', this.files[0]);
+        });
+        
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const file = document.getElementById('arquivo').files[0];
+            console.log('Enviando arquivo:', file);
+            if (!file) {
+                e.preventDefault();
+                alert('Selecione um arquivo!');
+            }
+        });
+    </script>
+</body>
+</html>

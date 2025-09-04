@@ -542,11 +542,11 @@
     
     // Funcionalidade de exportação
     function exportToPDF() {
-        alert('Funcionalidade de exportação para PDF será implementada em breve!');
+        window.open('{{ url_for("exportar_pdf") }}', '_blank');
     }
     
     function exportToExcel() {
-        alert('Funcionalidade de exportação para Excel será implementada em breve!');
+        window.open('{{ url_for("exportar_excel") }}', '_blank');
     }
 </script>
 {% endblock %}
