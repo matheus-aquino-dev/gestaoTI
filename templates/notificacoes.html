@@ -371,7 +371,7 @@
             {% if notif.tipo == 'success' %}✓{% elif notif.tipo == 'warning' %}⚠️{% elif notif.tipo == 'danger' %}✗{% else %}ℹ️{% endif %}
         </div>
         <div class="notification-content">
-            <div class="notification-date">{{ notif.data_criacao.strftime('%d/%m/%Y %H:%M') }}</div>
+            <div class="notification-date">{{ notif.data_criacao }}</div>
             <p class="notification-message">
                 {% if notif.link %}
                     <a href="{{ notif.link }}" class="notification-link">{{ notif.mensagem }}</a>

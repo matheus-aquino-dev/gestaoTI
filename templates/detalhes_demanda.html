@@ -434,7 +434,7 @@
             <ul class="historico-lista">
                 {% for item in historico %}
                 <li class="historico-item">
-                    <div class="historico-data">{{ item.data.strftime('%d/%m/%Y %H:%M') }}</div>
+                    <div class="historico-data">{{ item.data }}</div>
                     <div class="historico-autor">por {{ item.autor }}</div>
                     <div class="historico-descricao">{{ item.alteracao }}</div>
                 </li>

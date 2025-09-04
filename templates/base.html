@@ -327,7 +327,6 @@
         <a href="{{ url_for('importar_csv') }}">Importar via CSV</a>
         <a href="{{ url_for('listar_chips') }}">Gerir Chips</a>
         <a href="{{ url_for('listar_demandas') }}">Ver Demandas</a>
-        <a href="{{ url_for('adicionar_demanda') }}">Adicionar Demanda</a>
         <a href="{{ url_for('listar_categorias') }}">Gerir Categorias</a>
         <a href="{{ url_for('listar_centros_custo') }}">Gerir Centros de Custo</a>
         <a href="{{ url_for('listar_usuarios') }}">Gerir Utilizadores</a>
@@ -359,31 +358,35 @@
                 })
                 .then(data => {
                     if (data && Array.isArray(data)) {
-                        if (data.length > 0) {
-                            notifCount.textContent = data.length;
+                        const total = data.length;
+                        if (total > 0) {
+                            notifCount.textContent = total;
                             notifCount.style.display = 'block';
-                            if (data.length > lastCount) {
+                            if (total > lastCount) {
                                 notifBell.classList.add('ring');
-                                setTimeout(() => {
-                                    notifBell.classList.remove('ring');
-                                }, 500);
+                                setTimeout(() => { notifBell.classList.remove('ring'); }, 500);
                             }
-                            lastCount = data.length;
+                            lastCount = total;
                         } else {
                             notifCount.style.display = 'none';
                         }
-                        
+
+                        // Pré-visualização: últimos 3
                         notifList.innerHTML = '';
-                        data.slice(0, 5).forEach(notif => {
+                        data.slice(0, 3).forEach(n => {
                             const item = document.createElement('div');
                             item.className = 'notification-item';
-                            if (notif.link) {
-                                item.innerHTML = `<a href="${notif.link}">${notif.mensagem}</a>`;
+                            const date = n.data_criacao || '';
+                            const message = n.mensagem || '';
+                            if (n.link) {
+                                item.innerHTML = `<div class="notification-date" style="font-size:12px;color:#7f8c8d;">${date}</div><a href="${n.link}">${message}</a>`;
                             } else {
-                                item.innerHTML = `<span>${notif.mensagem}</span>`;
+                                item.innerHTML = `<div class="notification-date" style="font-size:12px;color:#7f8c8d;">${date}</div><span>${message}</span>`;
                             }
                             notifList.appendChild(item);
                         });
+
+                        // O link "Ver todas" já existe fixo no dropdown (fora de notif-list)
                     }
                 })
                 .catch(error => {
@@ -405,6 +408,9 @@
                 notifDropdown.style.display = 'none';
             }
         }
+
+        // Abrir/fechar dropdown ao clicar no sino
+        notifBell.addEventListener('click', toggleNotifications);
     </script>
 </body>
 </html>

@@ -65,6 +65,45 @@ def criar_banco():
                  id INTEGER PRIMARY KEY, mensagem TEXT NOT NULL, link TEXT, 
                  data_criacao DATETIME, lida BOOLEAN DEFAULT 0)''')
     conn.commit()
+    # Migração leve: garantir colunas esperadas na tabela 'chips' para bases antigas
+    try:
+        c.execute("PRAGMA table_info(chips)")
+        existing_cols = {row[1] for row in c.fetchall()}
+        migrations = [
+            ("funcionario_nome", "TEXT"),
+            ("centro_custo_id", "INTEGER"),
+            ("funcao", "TEXT"),
+            ("valor", "REAL"),
+            ("vencimento_fatura", "INTEGER"),
+            ("status", "TEXT DEFAULT 'Ativo'"),
+        ]
+        for col_name, col_type in migrations:
+            if col_name not in existing_cols:
+                c.execute(f"ALTER TABLE chips ADD COLUMN {col_name} {col_type}")
+        conn.commit()
+    except Exception:
+        # Evitar falhar inicialização caso PRAGMA/ALTER tenha algum problema
+        pass
+    # Migração leve: garantir colunas esperadas na tabela 'demandas' para bases antigas
+    try:
+        c.execute("PRAGMA table_info(demandas)")
+        existing_cols_dem = {row[1] for row in c.fetchall()}
+        demand_migrations = [
+            ("nome_solicitante", "TEXT NOT NULL"),
+            ("departamento", "TEXT"),
+            ("descricao", "TEXT NOT NULL"),
+            ("urgencia", "TEXT"),
+            ("data_criacao", "DATE"),
+            ("status", "TEXT DEFAULT 'Aberta'"),
+            ("responsavel", "TEXT"),
+            ("data_conclusao", "DATE"),
+        ]
+        for col_name, col_type in demand_migrations:
+            if col_name not in existing_cols_dem:
+                c.execute(f"ALTER TABLE demandas ADD COLUMN {col_name} {col_type}")
+        conn.commit()
+    except Exception:
+        pass
     conn.close()
 
 # --- 3. FUNÇÃO GENÉRICA DE CONSULTA AO BANCO ---
@@ -132,7 +171,9 @@ def index():
         LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id
         LEFT JOIN alocacoes al ON a.id = al.ativo_id
     """
-    return render_template('index.html', ativos=db_query(query))
+    notificacoes_recentes = db_query("SELECT * FROM notificacoes ORDER BY data_criacao DESC LIMIT 3")
+    categorias = db_query("SELECT * FROM categorias ORDER BY nome")
+    return render_template('index.html', ativos=db_query(query), notificacoes_recentes=notificacoes_recentes, categorias=categorias)
 
 # --- ROTAS DE DEMANDAS ---
 @app.route('/nova_demanda')
@@ -181,10 +222,15 @@ def detalhes_demanda(id):
     historico = db_query("SELECT * FROM demandas_historico WHERE demanda_id = ? ORDER BY data ASC", (id,))
     return render_template('detalhes_demanda.html', demanda=demanda, historico=historico)
 
-@app.route('/demandas/<int:id>/atualizar', methods=['POST'])
+@app.route('/demandas/<int:id>/atualizar', methods=['GET', 'POST'])
 @login_required
 def atualizar_demanda(id):
-    novo_status = request.form['status']
+    if request.method == 'GET':
+        return redirect(url_for('detalhes_demanda', id=id))
+    novo_status = request.form.get('status')
+    if not novo_status:
+        flash('Nenhum status informado para atualização.', 'danger')
+        return redirect(url_for('detalhes_demanda', id=id))
     demanda = db_query("SELECT * FROM demandas WHERE id = ?", (id,), fetchone=True)
     if novo_status == 'Em Andamento':
         db_query("UPDATE demandas SET status = ?, responsavel = ? WHERE id = ?", (novo_status, current_user.nome, id), commit=True)
@@ -310,6 +356,31 @@ def editar_ativo(id):
         criar_notificacao(f"Ativo '{dados['nome']}' foi atualizado.", url_for('detalhes_ativo', id=id))
         return redirect(url_for('index'))
     return render_template('editar_ativo.html', ativo=db_query("SELECT * FROM ativos WHERE id = ?", (id,), fetchone=True), categorias=db_query("SELECT * FROM categorias ORDER BY nome"), centros_custo=db_query("SELECT * FROM centros_custo ORDER BY nome"))
+
+@app.route('/ativo/<int:id>')
+@login_required
+def detalhes_ativo(id):
+    ativo = db_query(
+        """
+        SELECT a.*, cat.nome as categoria, cc.nome as centro_custo
+        FROM ativos a
+        LEFT JOIN categorias cat ON a.categoria_id = cat.id
+        LEFT JOIN centros_custo cc ON a.centro_custo_id = cc.id
+        WHERE a.id = ?
+        """,
+        (id,),
+        fetchone=True,
+    )
+    historico = db_query(
+        "SELECT * FROM historico_alocacoes WHERE ativo_id = ? ORDER BY data_alocacao DESC",
+        (id,),
+    )
+    alocacao = db_query(
+        "SELECT * FROM alocacoes WHERE ativo_id = ?",
+        (id,),
+        fetchone=True,
+    )
+    return render_template('detalhes_ativo.html', ativo=ativo, historico=historico, alocacao=alocacao)
 
 @app.route('/ativo/<int:id>/excluir')
 @login_required
@@ -450,6 +521,11 @@ def excluir_categoria(id):
     db_query("DELETE FROM categorias WHERE id = ?", (id,), commit=True)
     criar_notificacao(f"Categoria '{item['nome']}' foi excluída.")
     return redirect(url_for('listar_categorias'))
+
+# Alias de endpoints para compatibilidade com templates genéricos
+app.add_url_rule('/categorias/adicionar', endpoint='adicionar_categorias', view_func=adicionar_categoria, methods=['GET', 'POST'])
+app.add_url_rule('/categorias/<int:id>/editar', endpoint='editar_categorias', view_func=editar_categoria, methods=['GET', 'POST'])
+app.add_url_rule('/categorias/<int:id>/excluir', endpoint='excluir_categorias', view_func=excluir_categoria)
 
 # USUÁRIOS
 @app.route('/usuarios')
